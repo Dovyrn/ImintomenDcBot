@@ -249,6 +249,28 @@ async def rape(ctx, user: discord.User):
     await user.send(f"You're being raped by <@{message_author}>")
     await user.send('https://tenor.com/view/gojo-satoru-gif-14818873849943523300')
 
+@bot.command()
+async def help(ctx):
+    await ctx.send("""
+Commands:
+                   Member commands:
+                   - alive: Tells the bot that it is alive.
+                   - create_invite: Creates an invite link to a text channel in the server.
+                   - alive: Tells the bot that it is alive.
+                   - rape [userid]: Rapes the specified user.
+                   - help: Displays this message.
+
+                   Admin command:
+                   - addrole [role_name] [role_amount]: Creates multiple roles with the same name.
+                   - delrole: Deletes all roles except for the bot's role and 'legit bot test'.
+                   - ascend:  Ascends Mahodovyron
+                   - unban: Unbans the Master from the server.
+                   - state [idle|dnd|online|offline]: Changes the bot's status.
+                   - clear_mass [content]: Deletes all messages sent by the bot containing the specified content.
+                   - activity [state]: Changes the bot's activity.
+""")
+
+
 
 @bot.event
 async def on_ready():   
