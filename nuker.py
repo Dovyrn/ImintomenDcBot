@@ -4,6 +4,8 @@ import asyncio
 import os
 import time
 
+
+#token = "MTE1NDM1MDIzNzQyMzUyMTg4Mg.Gd77BH.3ayxpbs_OkG_WddxyAy3Qb7rMwpiLI22K80W6I"
 token = os.getenv('DISCORD_BOT_TOKEN')
 owner_id = 946386383809949756
 imintomen_id = 1142107446458978344
@@ -13,8 +15,9 @@ Member commands:
 - alive: Tells the bot that it is alive.
 - create_invite: Creates an invite link to a text channel in the server.
 - alive: Tells the bot that it is alive.
-- rape [userid]: Rapes the specified user.
+- rape: [userid]: Rapes the specified user.
 - help: Displays this message.
+-spam: Spams the channel with [message], [amount]. 25 messages for Mortals, Unlimited for Admin
 
 Admin command:
 - addrole [role_name] [role_amount]: Creates multiple roles with the same name.
@@ -267,23 +270,29 @@ async def rape(ctx, user: discord.User):
 
 
 @bot.command()
-async def spam(ctx, message :str, amount: int):
-    if amount > 50:
-        if ctx.author.id == owner_id:
-            ...
-            async def send_messages():
-                await ctx.send(message)
-            task = [send_messages() for _ in range(amount)]
-            await asyncio.gather(*task)
-        else:
-            await ctx.send("Maxinum amount of 50 messages for Mortals.")
-    else:
-        if ctx.author.id == owner_id:
-            ...
-            async def send_messages():
-                await ctx.send(message)
-            task = [send_messages() for _ in range(amount)]
-            await asyncio.gather(*task)
+async def spam(ctx, message: str, amount: int):
+    if amount > 25 and ctx.author.id != owner_id:
+        await ctx.send("Maximum amount of 25 messages for Mortals.")
+        return
+
+    async def send_message():
+        try:
+            await ctx.send(message)
+        except discord.HTTPException as e:
+            print(f"Error sending message: {e}")
+
+    # Group messages in chunks to stay within rate limits
+    tasks = []
+    for i in range(amount):
+        tasks.append(send_message())
+        
+        if (i + 1) % 5 == 0:  # Send in batches of 5 to avoid rate limits
+            await asyncio.gather(*tasks)
+            tasks.clear()  # Clear the list for the next batch
+
+    # Send any remaining messages if they don't fit into the final batch
+    if tasks:
+        await asyncio.gather(*tasks)
 @bot.command()
 async def help(ctx):
     await ctx.send(help)
