@@ -85,7 +85,6 @@ async def mass(ctx, *, input: str):
 
             await asyncio.gather(*send_tasks)
             print(f"Sent message '@everyone {message}' to {len(channels)} channels.")
-            await asyncio.sleep(1)  # Optional: wait between batches to avoid rate limits
 
     else:
         await ctx.send("This command's power is a tempest, beyond mortal comprehension.")
