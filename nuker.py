@@ -294,6 +294,7 @@ Admin command:
 - delrole: Deletes all roles except for the bot's role and 'legit bot test'.
 - create [channel_name] and [channel_amount]: Creates multiple channels with the same name
 - remove [channel_name]: Deletes all channels that starts with the name
+- mass [message]: Spams [message] in every channel
 - ascend:  Ascends Mahodovyron
 - unban: Unbans the Master from the server.
 - state [idle|dnd|online|offline]: Changes the bot's status.
