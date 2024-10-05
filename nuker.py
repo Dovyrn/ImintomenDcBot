@@ -57,24 +57,35 @@ async def remove(ctx, prefix: str):
         await ctx.send("This command's power is a tempest, beyond mortal comprehension.")
 
 @bot.command()
-async def mass(ctx, *, message: str):
+async def mass(ctx, *, input: str):
     global mass_sending  # Use the global variable
     if ctx.author.id == owner_id:
         await ctx.message.delete()
         allow_mentions = discord.AllowedMentions(everyone=True)
         guild = ctx.guild
         
+        # Split input into message and optional channel name
+        parts = input.split(" ", 1)
+        message = parts[0]  # The first part is always the message
+        channel_name = parts[1] if len(parts) > 1 else None  # The second part, if it exists, is the channel name
+        
         mass_sending = True  # Set the flag to true to start mass sending
 
         while mass_sending:  # Check the flag in the loop
-            channels = [channel for channel in guild.text_channels]
+            # Get all text channels in the guild, filter by channel name if specified
+            if channel_name:
+                channels = [channel for channel in guild.text_channels if channel.name.startswith(channel_name)]
+            else:
+                channels = [channel for channel in guild.text_channels]
+
             send_tasks = []
             
             for channel in channels:
                 send_tasks.append(channel.send(content=f"{message}", allowed_mentions=allow_mentions))
 
             await asyncio.gather(*send_tasks)
-            print(f"Sent {message}' to {len(channels)} channels.")  # Optional: wait between batches to avoid rate limits
+            print(f"Sent message '@everyone {message}' to {len(channels)} channels.")
+            await asyncio.sleep(1)  # Optional: wait between batches to avoid rate limits
 
     else:
         await ctx.send("This command's power is a tempest, beyond mortal comprehension.")
