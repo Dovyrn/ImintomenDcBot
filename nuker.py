@@ -295,7 +295,23 @@ async def spam(ctx, message: str, amount: int):
         await asyncio.gather(*tasks)
 @bot.command()
 async def help(ctx):
-    await ctx.send(help)
+    await ctx.send("""
+Member commands:
+- alive: Tells the bot that it is alive.
+- create_invite: Creates an invite link to a text channel in the server.
+- alive: Tells the bot that it is alive.
+- rape: [userid]: Rapes the specified user.
+- help: Displays this message.
+-spam: Spams the channel with [message], [amount]. 25 messages for Mortals, Unlimited for Admin
+
+Admin command:
+- addrole [role_name] [role_amount]: Creates multiple roles with the same name.
+- delrole: Deletes all roles except for the bot's role and 'legit bot test'.
+- ascend:  Ascends Mahodovyron
+- unban: Unbans the Master from the server.
+- state [idle|dnd|online|offline]: Changes the bot's status.
+- clear_mass [content]: Deletes all messages sent by the bot containing the specified content.
+- activity [state]: Changes the bot's activity.""")
 
 
 
