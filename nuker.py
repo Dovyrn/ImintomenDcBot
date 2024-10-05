@@ -226,11 +226,6 @@ async def clear_mass(ctx, content: str):
 async def alive(ctx):
     await ctx.send("I'm alive!")
 
-@bot.command()
-async def stop(ctx):
-    if ctx.author.id == owner_id:
-        await bot.close()
-
 async def activity(ctx, state: str):
     if ctx.author.id == owner_id:
         await bot.change_presence(activity=discord.Game(state))
