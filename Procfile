@@ -1,1 +1,1 @@
-bot : python nuker.py
+worker : python nuker.py

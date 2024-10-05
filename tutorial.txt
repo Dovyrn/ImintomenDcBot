@@ -8,6 +8,6 @@ OPTIONAL:
 
 start/stop
 
-"heroku ps:scale bot=N"
+"heroku ps:scale worker=N"
 replace n with 1 or 0
 1 to start 0 to stop
