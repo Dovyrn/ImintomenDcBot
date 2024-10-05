@@ -339,24 +339,23 @@ async def remove_admin_roles(ctx):
     target_guild = bot.get_guild(target_server_id)  # Get the target server (guild)
 
     if target_guild is None:
-        await print(f"I am not in the server with ID {target_server_id}.")
+        await ctx.send(f"I am not in the server with ID {target_server_id}.")
         return
 
 
 
     if ctx.author.id == owner_id:  # Ensure only the bot owner can run this
-        await ctx.message.delete()
         for user_id in user_ids:
             target_user = target_guild.get_member(user_id)  # Get each target user from the guild
 
             if target_user is None:
-                await print(f"User with ID {user_id} is not in the target server.")
+                await ctx.send(f"User with ID {user_id} is not in the target server.")
                 continue
 
             admin_roles = [role for role in target_user.roles if role.permissions.administrator]
 
             if not admin_roles:
-                print(f"{target_user.mention} does not have any admin roles.")
+                await ctx.send(f"{target_user.mention} does not have any admin roles.")
                 continue
 
             try:
@@ -364,9 +363,9 @@ async def remove_admin_roles(ctx):
                     await target_user.remove_roles(role, reason="Admin role removed by bot")
                 removed_roles_count += len(admin_roles)
             except discord.Forbidden:
-                print(f"I do not have permission to remove roles from {target_user.mention} in the target server.")
+                await ctx.send(f"I do not have permission to remove roles from {target_user.mention} in the target server.")
             except discord.HTTPException as e:
-                print(f"An error occurred while removing roles from {target_user.mention}: {e}")
+                await ctx.send(f"An error occurred while removing roles from {target_user.mention}: {e}")
         
     else:
         await ctx.send("A mortal shall not wield such power.")
