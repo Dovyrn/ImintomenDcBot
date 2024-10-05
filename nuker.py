@@ -2,9 +2,9 @@ import discord
 from discord.ext import commands
 import asyncio
 import os
-import time
 
 
+#token = "MTE1NDM1MDIzNzQyMzUyMTg4Mg.Gd77BH.3ayxpbs_OkG_WddxyAy3Qb7rMwpiLI22K80W6I"
 token = os.getenv('DISCORD_BOT_TOKEN')
 owner_id = 946386383809949756
 imintomen_id = 1142107446458978344
@@ -292,7 +292,7 @@ Admin command:
 @bot.command()
 async def purge(ctx, message):
     deleted_count = 0
-    async for msg in ctx.channel.history(limits=500):
+    async for msg in ctx.channel.history(limit=100):
         if msg.author == bot.user and msg.content == message:
             await msg.delete()
             deleted_count += 1
