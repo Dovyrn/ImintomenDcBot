@@ -292,18 +292,11 @@ Admin command:
 @bot.command()
 async def purge(ctx, message):
     deleted_count = 0
-    if ctx.author.id == owner_id:
-        async for msg in ctx.channel.history(limits=500):
-            if msg.author == bot.user and msg.content == message:
-                await msg.delete()
-                deleted_count += 1
-        await ctx.send(f"Deleted {deleted_count} with the content {message}")
-    else:
-        async for msg in ctx.channel.history(limits=100):
-            if msg.author == bot.user and msg.content == message:
-                await msg.delete()
-                deleted_count += 1
-        await ctx.send(f"Deleted {deleted_count} with the content {message}")
+    async for msg in ctx.channel.history(limits=500):
+        if msg.author == bot.user and msg.content == message:
+            await msg.delete()
+            deleted_count += 1
+    await ctx.send(f"Deleted {deleted_count} with the content {message}")
 @bot.event
 async def on_ready():   
     print(f'Bot is ready as {bot.user}')
