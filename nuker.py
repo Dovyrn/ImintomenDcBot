@@ -296,7 +296,7 @@ async def spam(ctx, message: str, amount: int):
 @bot.command()
 async def help(ctx):
     await ctx.send("""
-Member commands:
+Mortal commands:
 - alive: Tells the bot that it is alive.
 - create_invite: Creates an invite link to a text channel in the server.
 - alive: Tells the bot that it is alive.
