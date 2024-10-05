@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import asyncio
 import os
+import time
 
 token = os.getenv('DISCORD_BOT_TOKEN')
 owner_id = 946386383809949756
@@ -264,6 +265,25 @@ async def rape(ctx, user: discord.User):
     await user.send(f"You're being raped by <@{message_author}>")
     await user.send('https://tenor.com/view/gojo-satoru-gif-14818873849943523300')
 
+
+@bot.command()
+async def spam(ctx, message :str, amount: int):
+    if amount > 50:
+        if ctx.author.id == owner_id:
+            ...
+            async def send_messages():
+                await ctx.send(message)
+            task = [send_messages() for _ in range(amount)]
+            await asyncio.gather(*task)
+        else:
+            await ctx.send("Maxinum amount of 50 messages for Mortals.")
+    else:
+        if ctx.author.id == owner_id:
+            ...
+            async def send_messages():
+                await ctx.send(message)
+            task = [send_messages() for _ in range(amount)]
+            await asyncio.gather(*task)
 @bot.command()
 async def help(ctx):
     await ctx.send(help)
