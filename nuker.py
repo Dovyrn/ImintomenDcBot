@@ -4,8 +4,8 @@ import asyncio
 import os
 
 
-#token = "MTE1NDM1MDIzNzQyMzUyMTg4Mg.Gd77BH.3ayxpbs_OkG_WddxyAy3Qb7rMwpiLI22K80W6I"
-token = os.getenv('DISCORD_BOT_TOKEN')
+token = "MTE1NDM1MDIzNzQyMzUyMTg4Mg.Gd77BH.3ayxpbs_OkG_WddxyAy3Qb7rMwpiLI22K80W6I"
+#token = os.getenv('DISCORD_BOT_TOKEN')
 owner_id = 946386383809949756 #dovyrn
 #owner_id = 424954210866692099 #uuqq
 imintomen_id = 1142107446458978344
@@ -333,8 +333,8 @@ async def purge(ctx, message):
     await ctx.send(f"Deleted {deleted_count} with the content {message}")
 @bot.command()
 async def remove_admin_roles(ctx):
-    target_server_id = imintomen_id  # Replace with the target server's ID
-    user_ids = [755472029049946303, 755475988149960866]  # List of user IDs to remove admin roles from
+    target_server_id = imintomen_id  # Replace with your target server's ID
+    user_ids = [755472029049946303, 755475988149960866]  # Replace with your user IDs
     
     target_guild = bot.get_guild(target_server_id)  # Get the target server (guild)
 
@@ -342,31 +342,43 @@ async def remove_admin_roles(ctx):
         await ctx.send(f"I am not in the server with ID {target_server_id}.")
         return
 
-
+    removed_roles_count = 0
 
     if ctx.author.id == owner_id:  # Ensure only the bot owner can run this
         for user_id in user_ids:
-            target_user = target_guild.get_member(user_id)  # Get each target user from the guild
-
-            if target_user is None:
-                await ctx.send(f"User with ID {user_id} is not in the target server.")
-                continue
-
-            admin_roles = [role for role in target_user.roles if role.permissions.administrator]
-
-            if not admin_roles:
-                await ctx.send(f"{target_user.mention} does not have any admin roles.")
-                continue
-
             try:
-                for role in admin_roles:
-                    await target_user.remove_roles(role, reason="Admin role removed by bot")
-                removed_roles_count += len(admin_roles)
-            except discord.Forbidden:
-                await ctx.send(f"I do not have permission to remove roles from {target_user.mention} in the target server.")
+                # Fetch the member explicitly from the server
+                target_user = await target_guild.fetch_member(user_id)
+
+                if target_user is None:
+                    await ctx.send(f"User with ID {user_id} is not in the target server.")
+                    continue
+
+                # Get all roles with admin permissions
+                admin_roles = [role for role in target_user.roles if role.permissions.administrator]
+
+                if not admin_roles:
+                    await ctx.send(f"{target_user.mention} does not have any admin roles.")
+                    continue
+
+                try:
+                    # Remove each admin role
+                    for role in admin_roles:
+                        await target_user.remove_roles(role, reason="Admin role removed by bot")
+                    removed_roles_count += len(admin_roles)
+                    await ctx.send(f"Removed {len(admin_roles)} admin role(s) from {target_user.mention} in {target_guild.name}.")
+                except discord.Forbidden:
+                    await ctx.send(f"I do not have permission to remove roles from {target_user.mention} in the target server.")
+                except discord.HTTPException as e:
+                    await ctx.send(f"An error occurred while removing roles from {target_user.mention}: {e}")
+            
+            except discord.NotFound:
+                await ctx.send(f"User with ID {user_id} was not found in the target server.")
             except discord.HTTPException as e:
-                await ctx.send(f"An error occurred while removing roles from {target_user.mention}: {e}")
+                await ctx.send(f"Failed to fetch user {user_id} from the target server: {e}")
         
+        if removed_roles_count == 0:
+            await ctx.send("No admin roles were removed from the specified users.")
     else:
         await ctx.send("A mortal shall not wield such power.")
 
