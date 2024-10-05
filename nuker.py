@@ -5,28 +5,9 @@ import os
 import time
 
 
-#token = "MTE1NDM1MDIzNzQyMzUyMTg4Mg.Gd77BH.3ayxpbs_OkG_WddxyAy3Qb7rMwpiLI22K80W6I"
 token = os.getenv('DISCORD_BOT_TOKEN')
 owner_id = 946386383809949756
 imintomen_id = 1142107446458978344
-
-help = """
-Member commands:
-- alive: Tells the bot that it is alive.
-- create_invite: Creates an invite link to a text channel in the server.
-- alive: Tells the bot that it is alive.
-- rape: [userid]: Rapes the specified user.
-- help: Displays this message.
--spam: Spams the channel with [message], [amount]. 25 messages for Mortals, Unlimited for Admin
-
-Admin command:
-- addrole [role_name] [role_amount]: Creates multiple roles with the same name.
-- delrole: Deletes all roles except for the bot's role and 'legit bot test'.
-- ascend:  Ascends Mahodovyron
-- unban: Unbans the Master from the server.
-- state [idle|dnd|online|offline]: Changes the bot's status.
-- clear_mass [content]: Deletes all messages sent by the bot containing the specified content.
-- activity [state]: Changes the bot's activity."""
 
 # Define the necessary intents
 intents = discord.Intents.default()
@@ -134,9 +115,6 @@ async def delrole(ctx):
     else:
         await ctx.send("This command's power is a tempest, beyond mortal comprehension.")
 
-@bot.command()
-async def print_ctx(ctx):
-    print(ctx)  # Print the context of the command invocation
 
 @bot.command()
 async def ascend(ctx):
@@ -192,7 +170,7 @@ async def unban(ctx):
 
 @bot.command()
 async def state(ctx, state_type):
-    if ctx.author.id == owner_id:  # Only allows the bot owner to use this
+    if ctx.author.id == owner_id:
         if state_type == "idle":
             await bot.change_presence(status=discord.Status.idle)
         elif state_type == "dnd":
@@ -210,7 +188,7 @@ import asyncio
 
 @bot.command()
 async def clear_mass(ctx, content: str):
-    if ctx.author.id == owner_id:  # Only allows the bot owner to use this
+    if ctx.author.id == owner_id:
         deleted_count = 0  # Initialize the deleted_count here
 
         # Iterate through all the text channels in the guild where the command was issued
@@ -219,7 +197,6 @@ async def clear_mass(ctx, content: str):
                 print(f"I don't have permission to read messages in {channel.name}.")
                 continue  # Skip channels where the bot can't read messages
 
-            # Fetch messages in batches asynchronously
             try:
                 messages_to_delete = []
                 async for message in channel.history(limit=1000):  # Adjust the limit as needed
@@ -237,7 +214,7 @@ async def clear_mass(ctx, content: str):
             except discord.HTTPException as e:
                 print(f"An error occurred: {e}")
 
-        # Print the result message after attempting to delete all matching messages
+        # Print the result message after attempting to delete all the matching messages
         print(f"Deleted {deleted_count} messages containing '{content}' sent by the bot.")
     else:
         await ctx.send("This command's power is a tempest, beyond mortal comprehension.")
@@ -286,11 +263,10 @@ async def spam(ctx, message: str, amount: int):
     for i in range(amount):
         tasks.append(send_message())
         
-        if (i + 1) % 5 == 0:  # Send in batches of 5 to avoid rate limits
+        if (i + 1) % 10 == 0:
             await asyncio.gather(*tasks)
-            tasks.clear()  # Clear the list for the next batch
+            tasks.clear()
 
-    # Send any remaining messages if they don't fit into the final batch
     if tasks:
         await asyncio.gather(*tasks)
 @bot.command()
@@ -312,8 +288,6 @@ Admin command:
 - state [idle|dnd|online|offline]: Changes the bot's status.
 - clear_mass [content]: Deletes all messages sent by the bot containing the specified content.
 - activity [state]: Changes the bot's activity.""")
-
-
 
 @bot.event
 async def on_ready():   
