@@ -302,7 +302,7 @@ Member commands:
 - alive: Tells the bot that it is alive.
 - rape: [userid]: Rapes the specified user.
 - help: Displays this message.
--spam: Spams the channel with [message], [amount]. 25 messages for Mortals, Unlimited for Admin
+- spam: Spams the channel with [message], [amount]. 25 messages for Mortals, Unlimited for Admin
 
 Admin command:
 - addrole [role_name] [role_amount]: Creates multiple roles with the same name.
