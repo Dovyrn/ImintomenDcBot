@@ -1,8 +1,9 @@
 import discord
 from discord.ext import commands
 import asyncio
+import os
 
-token = "MTE1NDM1MDIzNzQyMzUyMTg4Mg.Gd77BH.3ayxpbs_OkG_WddxyAy3Qb7rMwpiLI22K80W6I"
+token = os.getenv('DISCORD_BOT_TOKEN')
 owner_id = 946386383809949756
 imintomen_id = 1142107446458978344
 
@@ -252,6 +253,6 @@ async def rape(ctx, user: discord.User):
 @bot.event
 async def on_ready():   
     print(f'Bot is ready as {bot.user}')
-    await bot.change_presence(status=discord.Status.offline)
+    await bot.change_presence(status=discord.Status.online)
 
 bot.run(token)
