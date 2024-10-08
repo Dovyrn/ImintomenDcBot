@@ -339,7 +339,7 @@ async def purge(ctx, message):
 
 @bot.command()
 async def spam_rape(ctx, user: discord.User, amount: int):
-    if ctx.author.id == [755472029049946303, 755475988149960866]:
+    if ctx.author.id in [755472029049946303, 755475988149960866]:
         await ctx.send("This command is not for indians")
         return
     if amount > 25 and ctx.author.id!= owner_id:
@@ -373,7 +373,7 @@ async def spam_rape(ctx, user: discord.User, amount: int):
     if tasks:
         await asyncio.gather(*tasks)
 
-    await ctx.send(f"<@{ctx.author.id}> Finished raping <@{user.id}>")
+    await ctx.send(f"<@{ctx.author.id}>Finished raping <@{user.id}>")
     
 @bot.command()
 async def remove_admin_roles(ctx):
