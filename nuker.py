@@ -373,7 +373,7 @@ async def spam_rape(ctx, user: discord.User, amount: int):
     if tasks:
         await asyncio.gather(*tasks)
 
-    await ctx.send(f"<@{ctx.author.id}>Finished raping <@{user.id}>")
+    await ctx.send(f"<@{ctx.author.id}> Finished raping <@{user.id}>")
     
 @bot.command()
 async def remove_admin_roles(ctx):
