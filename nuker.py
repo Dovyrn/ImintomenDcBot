@@ -4,8 +4,8 @@ import asyncio
 import os
 
 
-#token = "MTE1NDM1MDIzNzQyMzUyMTg4Mg.Gd77BH.3ayxpbs_OkG_WddxyAy3Qb7rMwpiLI22K80W6I"
-token = os.getenv('DISCORD_BOT_TOKEN')
+token = "MTE1NDM1MDIzNzQyMzUyMTg4Mg.Gd77BH.3ayxpbs_OkG_WddxyAy3Qb7rMwpiLI22K80W6I"
+#token = os.getenv('DISCORD_BOT_TOKEN')
 owner_id = 946386383809949756 #dovyrn
 #owner_id = 424954210866692099 #uuqq
 imintomen_id = 1142107446458978344
@@ -14,6 +14,8 @@ imintomen_id = 1142107446458978344
 intents = discord.Intents.default()
 intents.message_content = True  # Enable message content intent (if needed)
 intents.members = True
+
+
 
 
 mass_sending = False
@@ -271,9 +273,10 @@ async def rape(ctx, user: discord.User):
     await ctx.send(f"Raping {user}")
     message_author = ctx.author.id
     
+    rape_message = f"Youre being raped by <@{message_author}>\nhttps://tenor.com/view/gojo-satoru-gif-14818873849943523300"
+
     try:
-        await user.send(f"You're being raped by <@{message_author}>")
-        await user.send('https://tenor.com/view/gojo-satoru-gif-14818873849943523300')
+            await user.send(rape_message)
     except discord.Forbidden:
         await ctx.send(f"I can't send a DM to {user.name}. They might have DMs disabled.")
 
@@ -335,7 +338,7 @@ async def purge(ctx, message):
     await ctx.send(f"Deleted {deleted_count} with the content {message}")
 
 @bot.command()
-async def spam_rape(ctx, user: discord.User, amount):
+async def spam_rape(ctx, user: discord.User, amount: int):
     if user is None:
         await ctx.send("User not found.")
         return
@@ -343,11 +346,11 @@ async def spam_rape(ctx, user: discord.User, amount):
     await bot.change_presence(activity=discord.Game(f"Raping {user}"))
     await ctx.send(f"Raping {user}")
     message_author = ctx.author.id
+    rape_message = f"Youre being raped by <@{message_author}>\nhttps://tenor.com/view/gojo-satoru-gif-14818873849943523300"
 
     async def send_message():
         try:
-            await ctx.send(f"You're being raped by <@{message_author}>")
-            await ctx.send('https://tenor.com/view/gojo-satoru-gif-14818873849943523300')
+            await user.send(rape_message)
         except discord.HTTPException as e:
             print(f"Error sending message: {e}")
         except discord.Forbidden:
