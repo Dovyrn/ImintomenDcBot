@@ -339,7 +339,7 @@ async def purge(ctx, message):
 
 @bot.command()
 async def spam_rape(ctx, user: discord.User, amount: int):
-    if ctx.author.id in [755472029049946303, 755475988149960866]:
+    if ctx.author.id in [755472029049946303, 755475988149960866, 1223229005382025217, 907174800487743558]:
         await ctx.send("This command is not for indians")
         return
     if amount > 25 and ctx.author.id!= owner_id:
