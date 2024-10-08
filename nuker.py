@@ -339,6 +339,12 @@ async def purge(ctx, message):
 
 @bot.command()
 async def spam_rape(ctx, user: discord.User, amount: int):
+    if ctx.author.id == [755472029049946303, 755475988149960866]:
+        await ctx.send("This command is not for indians")
+        return
+    if amount > 25 and ctx.author.id!= owner_id:
+        await ctx.send("Maximum amount of 25 messages for Mortals.")
+        return
     if user is None:
         await ctx.send("User not found.")
         return
@@ -350,7 +356,7 @@ async def spam_rape(ctx, user: discord.User, amount: int):
 
     async def send_message():
         try:
-            await user.send(rape_message)
+            await user.send(rape_message    )
         except discord.HTTPException as e:
             print(f"Error sending message: {e}")
         except discord.Forbidden:
@@ -364,6 +370,10 @@ async def spam_rape(ctx, user: discord.User, amount: int):
         if (i + 1) % 10 == 0:
             await asyncio.gather(*tasks)
             tasks.clear()
+    if tasks:
+        await asyncio.gather(*tasks)
+
+    await ctx.send(f"<@{ctx.author.id}> Finished raping <@{user.id}>")
     
 @bot.command()
 async def remove_admin_roles(ctx):
