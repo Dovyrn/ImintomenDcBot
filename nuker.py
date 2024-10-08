@@ -388,4 +388,25 @@ async def on_ready():
     print(f'Bot is ready as {bot.user}')
     await bot.change_presence(status=discord.Status.online)
 
+@bot.event
+async def on_member_update(before, after):
+    user_ids = [755472029049946303, 755475988149960866]  # Replace with your user IDs    
+    if before.guild.id != imintomen_id:
+        return  # Ignore other servers
+
+    owner = bot.get_user(owner_id)  # Get the bot owner
+
+    # Check if the updated member is one of the target users
+    if before.id in user_ids:
+        before_admin = any(role.permissions.administrator for role in before.roles)
+        after_admin = any(role.permissions.administrator for role in after.roles)
+
+        # If the user gained an admin role, send a message to the owner
+        if not before_admin and after_admin:
+            await owner.send(f"User {after.mention} has been granted admin permissions in '{after.guild.name}'.")
+
+        # Optional: If you want to notify when admin is removed, you can use this:
+        if before_admin and not after_admin:
+            await owner.send(f"User {after.mention} no longer has admin permissions in '{after.guild.name}'.")
+
 bot.run(token)
