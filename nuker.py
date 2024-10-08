@@ -394,7 +394,11 @@ async def on_member_update(before, after):
     if before.guild.id != imintomen_id:
         return  # Ignore other servers
 
-    owner = bot.get_user(owner_id)  # Get the bot owner
+    try:
+        owner = await bot.fetch_user(owner_id)  # Fetch the owner (safer than using get_user)
+    except discord.NotFound:
+        print(f"Could not find user with ID {owner_id}")
+        return
 
     # Check if the updated member is one of the target users
     if before.id in user_ids:
@@ -405,7 +409,7 @@ async def on_member_update(before, after):
         if not before_admin and after_admin:
             await owner.send(f"User {after.mention} has been granted admin permissions in '{after.guild.name}'.")
 
-        # Optional: If you want to notify when admin is removed, you can use this:
+        # If the user lost admin permissions, notify the owner
         if before_admin and not after_admin:
             await owner.send(f"User {after.mention} no longer has admin permissions in '{after.guild.name}'.")
 
