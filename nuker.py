@@ -272,7 +272,7 @@ async def rape(ctx, user: discord.User):
     message_author = ctx.author.id
     
     try:
-        await user.send(f"You're being raoed by <@{message_author}>")
+        await user.send(f"You're being raped by <@{message_author}>")
         await user.send('https://tenor.com/view/gojo-satoru-gif-14818873849943523300')
     except discord.Forbidden:
         await ctx.send(f"I can't send a DM to {user.name}. They might have DMs disabled.")
@@ -333,6 +333,35 @@ async def purge(ctx, message):
             await msg.delete()
             deleted_count += 1
     await ctx.send(f"Deleted {deleted_count} with the content {message}")
+
+@bot.command()
+async def spam_rape(ctx, user: discord.User, amount):
+    if user is None:
+        await ctx.send("User not found.")
+        return
+        
+    await bot.change_presence(activity=discord.Game(f"Raping {user}"))
+    await ctx.send(f"Raping {user}")
+    message_author = ctx.author.id
+
+    async def send_message():
+        try:
+            await ctx.send(f"You're being raped by <@{message_author}>")
+            await ctx.send('https://tenor.com/view/gojo-satoru-gif-14818873849943523300')
+        except discord.HTTPException as e:
+            print(f"Error sending message: {e}")
+        except discord.Forbidden:
+            await ctx.send(f"I can't send a DM to {user.name}. They might have DMs disabled.")
+
+    # Group messages in chunks to stay within rate limits
+    tasks = []
+    for i in range(amount):
+        tasks.append(send_message())
+        
+        if (i + 1) % 10 == 0:
+            await asyncio.gather(*tasks)
+            tasks.clear()
+    
 @bot.command()
 async def remove_admin_roles(ctx):
     target_server_id = imintomen_id  # Replace with your target server's ID
