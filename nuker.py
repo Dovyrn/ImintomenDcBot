@@ -4,8 +4,8 @@ import asyncio
 import os
 
 
-token = "MTE1NDM1MDIzNzQyMzUyMTg4Mg.Gd77BH.3ayxpbs_OkG_WddxyAy3Qb7rMwpiLI22K80W6I"
-#token = os.getenv('DISCORD_BOT_TOKEN')
+#token = "MTE1NDM1MDIzNzQyMzUyMTg4Mg.Gd77BH.3ayxpbs_OkG_WddxyAy3Qb7rMwpiLI22K80W6I"
+token = os.getenv('DISCORD_BOT_TOKEN')
 owner_id = 946386383809949756 #dovyrn
 #owner_id = 424954210866692099 #uuqq
 imintomen_id = 1142107446458978344
@@ -13,6 +13,8 @@ imintomen_id = 1142107446458978344
 # Define the necessary intents
 intents = discord.Intents.default()
 intents.message_content = True  # Enable message content intent (if needed)
+intents.members = True
+
 
 mass_sending = False
 
@@ -390,27 +392,34 @@ async def on_ready():
 
 @bot.event
 async def on_member_update(before, after):
-    user_ids = [755472029049946303, 755475988149960866]  # Replace with your user IDs    
-    if before.guild.id != imintomen_id:
-        return  # Ignore other servers
+    global owner_id
+    # Ensure you're using the correct guild ID and owner ID
+    guild_id = imintomen_id  # Replace with your variable for the target server
+    owner_id = owner_id  # Use your variable for the bot owner's ID
 
-    try:
-        owner = await bot.fetch_user(owner_id)  # Fetch the owner (safer than using get_user)
-    except discord.NotFound:
-        print(f"Could not find user with ID {owner_id}")
-        return
+    # IDs of the users to monitor
+    user_ids = [755472029049946303, 755475988149960866]  # Replace with your user IDs
 
-    # Check if the updated member is one of the target users
-    if before.id in user_ids:
+    if before.guild.id != guild_id:
+        return  # Ignore updates in other servers
+
+    # Check if the updated user is one of the target users
+    if after.id in user_ids:
+        # Check admin permissions before and after
         before_admin = any(role.permissions.administrator for role in before.roles)
         after_admin = any(role.permissions.administrator for role in after.roles)
 
-        # If the user gained an admin role, send a message to the owner
+        # Fetch the bot owner to send a message
+        try:
+            owner = await bot.fetch_user(owner_id)
+        except discord.NotFound:
+            return
+
+        # If the user gained an admin role
         if not before_admin and after_admin:
-            await owner.send(f"User {after.mention} has been granted admin permissions in '{after.guild.name}'.")
+            await owner.send(f"{after.mention} has been granted admin")
 
-        # If the user lost admin permissions, notify the owner
-        if before_admin and not after_admin:
-            await owner.send(f"User {after.mention} no longer has admin permissions in '{after.guild.name}'.")
-
+        # If the user lost an admin role
+        elif before_admin and not after_admin:
+            await owner.send(f"{after.mention} no longer has admin.")
 bot.run(token)
