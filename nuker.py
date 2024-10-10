@@ -338,11 +338,12 @@ async def purge(ctx, message):
     await ctx.send(f"Deleted {deleted_count} with the content {message}")
 
 @bot.command()
+@commands.cooldown(1)
 async def spam_rape(ctx, user: discord.User, amount: int):
     if ctx.author.id in [755472029049946303, 755475988149960866, 1223229005382025217, 907174800487743558]:
         await ctx.send("This command is not for indians")
         return
-    if amount > 25 and ctx.author.id!= owner_id:
+    if amount > 100 and ctx.author.id!= owner_id:
         await ctx.send("Maximum amount of 25 messages for Mortals.")
         return
     if user is None:
@@ -380,6 +381,7 @@ async def remove_admin_roles(ctx):
     target_server_id = imintomen_id  # Replace with your target server's ID
     user_ids = [755472029049946303, 755475988149960866]  # Replace with your user IDs
     
+
     target_guild = bot.get_guild(target_server_id)  # Get the target server (guild)
 
     if target_guild is None:
@@ -389,6 +391,7 @@ async def remove_admin_roles(ctx):
     removed_roles_count = 0
 
     if ctx.author.id == owner_id:  # Ensure only the bot owner can run this
+        await ctx.message.delete
         for user_id in user_ids:
             try:
                 # Fetch the member explicitly from the server
@@ -426,6 +429,17 @@ async def remove_admin_roles(ctx):
     else:
         await ctx.send("A mortal shall not wield such power.")
 
+    
+@bot.command()
+async def admin_list(ctx):
+    admins = []
+    for member in ctx.guild.members:
+        if any(role.permission.administrator for role in member.roles):
+            admins.append(member.mention)
+    if admins:
+        await ctx.send(f"Admin list: {', '.join(admins)}")
+    else:
+        await ctx.send("No users have admin permissions in this server.")
 
 @bot.event
 async def on_ready():   
