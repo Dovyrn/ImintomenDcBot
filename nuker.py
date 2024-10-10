@@ -338,7 +338,7 @@ async def purge(ctx, message):
     await ctx.send(f"Deleted {deleted_count} with the content {message}")
 
 @bot.command()
-@commands.cooldown(per=1)
+@commands.cooldown(per=1, rate=5)
 async def spam_rape(ctx, user: discord.User, amount: int):
     if ctx.author.id in [755472029049946303, 755475988149960866, 1223229005382025217, 907174800487743558]:
         await ctx.send("This command is not for indians")
