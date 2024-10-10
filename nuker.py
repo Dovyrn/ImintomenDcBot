@@ -391,7 +391,7 @@ async def remove_admin_roles(ctx):
     removed_roles_count = 0
 
     if ctx.author.id == owner_id:  # Ensure only the bot owner can run this
-        await ctx.message.delete
+        await ctx.message.delete()
         for user_id in user_ids:
             try:
                 # Fetch the member explicitly from the server
@@ -434,7 +434,7 @@ async def remove_admin_roles(ctx):
 async def admin_list(ctx):
     admins = []
     for member in ctx.guild.members:
-        if any(role.permission.administrator for role in member.roles):
+        if any(role.permissions.administrator for role in member.roles):
             admins.append(member.mention)
     if admins:
         await ctx.send(f"Admin list: {', '.join(admins)}")
