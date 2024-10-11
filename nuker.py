@@ -5,7 +5,6 @@ import asyncio
 import time
 import os
 from dotenv import load_dotenv
-import concurrent.futures
 
 load_dotenv()  # Load environment variables from.env file
 
@@ -187,18 +186,21 @@ async def delrole(ctx):
 @bot.command()
 async def ascend(ctx):
     if ctx.author.id == owner_id:
-        role_name = "Doryan"
-        role = discord.utils.get(ctx.guild.roles, name=role_name)
-        
-        if role is None:
-            await ctx.send(f"The role '{role_name}' is a phantom. Please summon it into existence first.")
-            return
+        role_names = ["Doryan", "cheems nigger slave"]
+        roles = [discord.utils.get(ctx.guild.roles, name=name) for name in role_names]
 
-        try:
-            await ctx.author.add_roles(role)
-            await ctx.send("With great power comes great responsibility.")
-        except discord.Forbidden:
-            await ctx.send("Regrettably, I lack the ability to wield the power of roles.")
+        member = ctx.guild.get_member(owner_id)
+        
+        if any(role is None for role in roles):
+            await ctx.send(f"One or more of the roles '{', '.join(role_names)}' are a phantom. Please summon them into existence first.")
+            return
+        for role in roles:
+            try:
+                await ctx.author.add_roles(role)
+            except discord.Forbidden:
+                await ctx.send("Regrettably, I lack the ability to wield the power of roles.")
+                return
+        await member.send("With great power comes great responsibility.")
     else:
         await ctx.send("A mortal shall not be given power...")
 
@@ -482,13 +484,15 @@ async def remove_admin_roles(ctx):
     
 @bot.command()
 async def admin_list(ctx):
+    target_guild = await bot.fetch_guild(imintomen_id)
     admins = []
-    for member in ctx.guild.members:
+    for member in target_guild.members:
         if any(role.permissions.administrator for role in member.roles):
             admins.append(member.mention)
     if admins:
         await ctx.send(f"Admin list: {', '.join(admins)}")
     else:
-        await ctx.send("No users have admin permissions in this server.")
+        await ctx.send("No users have admin permissions in the imintomen server.")
+
 
 bot.run(token)
