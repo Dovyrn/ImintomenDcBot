@@ -29,7 +29,11 @@ bot = commands.Bot(command_prefix=':/', case_insensitive=True, help_command=None
 async def on_ready():   
     print(f'Bot is ready as {bot.user}')
     await bot.change_presence(status=discord.Status.online)
-    await bot.tree.sync()
+    try:
+        synced = await bot.tree.sync()
+        print(f"Synced {len(synced)} command(s)")
+    except Exception as e:
+        print(e)
 
 @bot.event
 async def on_member_update(before, after):
@@ -482,17 +486,22 @@ async def remove_admin_roles(ctx):
         await ctx.send("A mortal shall not wield such power.")
 
     
-@bot.command()
-async def admin_list(ctx):
-    target_guild = await bot.fetch_guild(imintomen_id)
-    admins = []
-    for member in target_guild.members:
-        if any(role.permissions.administrator for role in member.roles):
-            admins.append(member.mention)
-    if admins:
-        await ctx.send(f"Admin list: {', '.join(admins)}")
+@bot.tree.command(name="check_admin")
+async def check_admins(interaction: discord.Interaction):
+    if interaction.user.id == owner_id:  # Assuming 'owner_id' is defined earlier
+        admins = [member.mention for member in interaction.guild.members if any(role.permissions.administrator for role in member.roles)]
+
+        if admins:
+            await interaction.response.send_message(f"The following users have admin permissions: {', '.join(admins)}", ephemeral=True)
+        else:
+            await interaction.response.send_message("No users have admin permissions in this server.", ephemeral=True)
     else:
-        await ctx.send("No users have admin permissions in the imintomen server.")
+        return
+
+@bot.tree.command(name="hello")
+async def hello(interaction : discord.Interaction):
+    await interaction.response.send_message(f"Hello, {interaction.user.mention}!",
+                                            ephemeral=True)
 
 
 bot.run(token)
