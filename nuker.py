@@ -5,6 +5,7 @@ import asyncio
 import time
 import os
 from dotenv import load_dotenv
+import concurrent.futures
 
 load_dotenv()  # Load environment variables from.env file
 
@@ -25,7 +26,44 @@ mass_sending = False
 
 bot = commands.Bot(command_prefix=':/', case_insensitive=True, help_command=None, intents=intents)
 
+@bot.event
+async def on_ready():   
+    print(f'Bot is ready as {bot.user}')
+    await bot.change_presence(status=discord.Status.online)
+    await bot.tree.sync()
 
+@bot.event
+async def on_member_update(before, after):
+    global owner_id
+    # Ensure you're using the correct guild ID and owner ID
+    guild_id = imintomen_id  # Replace with your variable for the target server
+    owner_id = owner_id  # Use your variable for the bot owner's ID
+
+    # IDs of the users to monitor
+    user_ids = [755472029049946303, 755475988149960866]  # Replace with your user IDs
+
+    if before.guild.id != guild_id:
+        return  # Ignore updates in other servers
+
+    # Check if the updated user is one of the target users
+    if after.id in user_ids:
+        # Check admin permissions before and after
+        before_admin = any(role.permissions.administrator for role in before.roles)
+        after_admin = any(role.permissions.administrator for role in after.roles)
+
+        # Fetch the bot owner to send a message
+        try:
+            owner = await bot.fetch_user(owner_id)
+        except discord.NotFound:
+            return
+
+        # If the user gained an admin role
+        if not before_admin and after_admin:
+            await owner.send(f"{after.mention} has been granted admin")
+
+        # If the user lost an admin role
+        elif before_admin and not after_admin:
+            await owner.send(f"{after.mention} no longer has admin.")
 
 
 @bot.tree.command()
@@ -75,34 +113,24 @@ async def remove(ctx, prefix: str):
         await ctx.send("This command's power is a tempest, beyond mortal comprehension.")
 
 @bot.command()
-async def mass(ctx, *, input: str):
+async def mass(ctx, content: str, channel_name: str):
     global mass_sending  # Use the global variable
     if ctx.author.id == owner_id:
         
         allow_mentions = discord.AllowedMentions(everyone=True)
         guild = ctx.guild
         
-        # Split input into message and optional channel name
-        parts = input.split(" ", 1)
-        message = parts[0]  # The first part is always the message
-        channel_name = parts[1] if len(parts) > 1 else None  # The second part, if it exists, is the channel name
-        
         mass_sending = True  # Set the flag to true to start mass sending
 
         while mass_sending:  # Check the flag in the loop
-            # Get all text channels in the guild, filter by channel name if specified
-            if channel_name:
-                channels = [channel for channel in guild.text_channels if channel.name.startswith(channel_name)]
-            else:
-                channels = [channel for channel in guild.text_channels]
+            # Get all text channels in the guild, filter by channel name
+            channels = [channel for channel in guild.text_channels if channel.name.startswith(channel_name)]
 
-            send_tasks = []
-            
+            tasks = []
             for channel in channels:
-                send_tasks.append(channel.send(content=f"{message}", allowed_mentions=allow_mentions))
-
-            await asyncio.gather(*send_tasks)
-            print(f"Sent message '@everyone {message}' to {len(channels)} channels.")
+                tasks.append(asyncio.create_task(channel.send(f"{content}", allowed_mentions=allow_mentions)))
+            await asyncio.gather(*tasks)
+            print(f"Sent message '@everyone {content}' to {len(channels)} channels.")
 
     else:
         await ctx.send("This command's power is a tempest, beyond mortal comprehension.")
@@ -295,29 +323,36 @@ async def rape(ctx, user: discord.User):
         await ctx.send(f"I can't send a DM to {user.name}. They might have DMs disabled.")
 
 
-@bot.command()
-async def spam(ctx, message: str, amount: int):
-    if amount > 25 and ctx.author.id != owner_id:
-        await ctx.send("Maximum amount of 25 messages for Mortals.")
+@bot.tree.command()
+@app_commands.describe(message="The message to send", amount="Amount of messages to send")
+async def spam(interaction: discord.Interaction, message: str, amount: int):
+    if amount > 25 and interaction.user.id != owner_id:
+        await interaction.response.send_message("Maximum amount of 25 messages for Mortals.")
         return
+    start_time = time.time()
 
-    async def send_message():
+    batch_size = 10  # Increased batch size
+    batches = [message] * batch_size
+
+    async def send_batch(messages):
         try:
-            await ctx.send(message)
+            # Concatenate the messages into a single string
+            message_text = '\n'.join(messages)
+            await interaction.channel.send(message_text)
         except discord.HTTPException as e:
             print(f"Error sending message: {e}")
 
-    # Group messages in chunks to stay within rate limits
     tasks = []
-    for i in range(amount):
-        tasks.append(send_message())
-        
-        if (i + 1) % 10 == 0:
-            await asyncio.gather(*tasks)
-            tasks.clear()
+    for i in range(0, amount, batch_size):
+        batch = batches[:amount - i]
+        tasks.append(asyncio.create_task(send_batch(batch)))
 
-    if tasks:
-        await asyncio.gather(*tasks)
+    await asyncio.gather(*tasks)
+    end_time = time.time()
+    duration = end_time - start_time
+    await interaction.response.send_message(f"Spammed {amount} messages in {duration:.2f} seconds.")
+
+    
 @bot.command()
 async def help(ctx):
     await ctx.send("""
@@ -456,42 +491,4 @@ async def admin_list(ctx):
     else:
         await ctx.send("No users have admin permissions in this server.")
 
-@bot.event
-async def on_ready():   
-    print(f'Bot is ready as {bot.user}')
-    await bot.change_presence(status=discord.Status.online)
-    await bot.tree.sync()
-
-@bot.event
-async def on_member_update(before, after):
-    global owner_id
-    # Ensure you're using the correct guild ID and owner ID
-    guild_id = imintomen_id  # Replace with your variable for the target server
-    owner_id = owner_id  # Use your variable for the bot owner's ID
-
-    # IDs of the users to monitor
-    user_ids = [755472029049946303, 755475988149960866]  # Replace with your user IDs
-
-    if before.guild.id != guild_id:
-        return  # Ignore updates in other servers
-
-    # Check if the updated user is one of the target users
-    if after.id in user_ids:
-        # Check admin permissions before and after
-        before_admin = any(role.permissions.administrator for role in before.roles)
-        after_admin = any(role.permissions.administrator for role in after.roles)
-
-        # Fetch the bot owner to send a message
-        try:
-            owner = await bot.fetch_user(owner_id)
-        except discord.NotFound:
-            return
-
-        # If the user gained an admin role
-        if not before_admin and after_admin:
-            await owner.send(f"{after.mention} has been granted admin")
-
-        # If the user lost an admin role
-        elif before_admin and not after_admin:
-            await owner.send(f"{after.mention} no longer has admin.")
 bot.run(token)
