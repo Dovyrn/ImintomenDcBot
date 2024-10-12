@@ -5,8 +5,10 @@ import asyncio
 import time
 import os
 from dotenv import load_dotenv
-from discord import webhook
-import requests
+import random
+import aiohttp
+from bs4 import BeautifulSoup
+from words import words
 
 load_dotenv()  # Load environment variables from.env file
 
@@ -29,9 +31,58 @@ bot = commands.Bot(command_prefix=':/', case_insensitive=True, help_command=None
 
 WEBHOOK_URL = "https://discord.com/api/webhooks/1294584017605365781/RTgHVItbFfHAnwB_uyjGVzTuzaiVHuha-ZoP7Hsl0Xr6r_OyTIIXfGkKH2unDFbgVhnU"
 
+bangla_list = ["https://tenor.com/view/bangla-bangladeshi-gifgari-shomudro-bilash-private-limited-natok-gif-25397183",
+               "https://tenor.com/view/marjuk-rasel-gifgari-bangla-bangla-gif-bangladesh-gif-18042831",
+               "https://tenor.com/view/more-gelam-kazi-maruf-gifgari-bangla-cinema-bangladesh-gif-19921536",
+               "https://tenor.com/view/razzak-gifgari-gifgari-classic-bangla-chobi-bangla-cinema-gif-18198237",
+               "https://tenor.com/view/madari-madari-bhai-madara-madara-uchiha-naruto-gif-6546085761222317001",
+               "https://tenor.com/view/rezoan-rezoan-gifgari-rezoan-bd-akil-akhtab-rezoan-boka-baksho-gif-23546120",
+               "https://tenor.com/view/gifgari-classic-gifgari-bangladesh-bangla-gif-bangla-cinema-gif-18197935",
+               "https://tenor.com/view/dipjol-bangla-cinema-abar-bol-gifgari-bangladesh-gif-19921422",
+               "https://tenor.com/view/gifgari-chondokobi-ripon-ripon-video-bangla-bangla-gif-gif-18289155",
+               "https://tenor.com/view/gifgari-gifgari-classic-razzak-hoi-hoi-hoi-rongila-gif-18208824"]
 
 
+async def fetch_fun_fact():
+    url = "https://www.thefactsite.com/1000-interesting-facts/"  # Replace with the correct URL
 
+    # Fetch the website content
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            if response.status == 200:
+                html = await response.text()
+                soup = BeautifulSoup(html, 'html.parser')
+
+                # Extract all fact elements from <p> tags with class="list"
+                facts = soup.find_all("p", class_="list")
+
+                # Choose a random fact from the list
+                if facts:
+                    random_fact = random.choice(facts).get_text()
+                    return random_fact.strip()  # Strip any leading/trailing whitespace
+                else:
+                    return "Couldn't find any fun facts."
+            else:
+                return "Failed to retrieve fun facts."
+
+async def fetch_motivational_quotes():
+    url = "https://www.shopify.com/blog/motivational-quotes"
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            if response.status == 200:
+                html = await response.text()
+                soup = BeautifulSoup(html, 'html.parser')
+
+                quotes = soup.find_all("li")
+
+                if quotes:
+                    random_quote = random.choice(quotes).get_text()
+                    return random_quote.strip()  # Strip any leading/trailing whitespace
+                else:
+                    return "Couldn't find any motivational quotes."
+            else:
+                return "Failed to retrieve motivational quotes."
 class RemoveAdminView(discord.ui.View):
     def __init__(self, admins):
         super().__init__()
@@ -572,7 +623,7 @@ async def remove_admin_roles(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
 
-
+@commands.cooldown(per=300, rate=2)
 @bot.tree.command(name="suggest", description="Suggest a command to add")
 @app_commands.describe(idea="The idea you want to suggest.")
 async def suggestion(interaction : discord.Interaction, idea: str):
@@ -594,8 +645,119 @@ async def suggestion(interaction : discord.Interaction, idea: str):
     except discord.NotFound:
         interaction.response.send_message(f"Looks like dovyrn is uncapable of coding such a simple thing. He cant even find his own userid!\nSpam his dms to let him know!")
 
-    
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.send(f"Command is on cooldown. Try again after {int(error.retry_after)} seconds.")
+
+@bot.tree.command(name="remind", description="Set a reminder.")
+@app_commands.describe(time="Time to wait before the reminder", message="Reminder message")
+async def remind(interaction: discord.Interaction, time: str, message: str):
+    # Convert time to seconds (this is a simple parser, you can expand this)
+    time_units = {
+        's': 1,  # seconds
+        'm': 60,  # minutes
+        'h': 3600  # hours
+    }
+
+    if time[-1] in time_units and time[:-1].isdigit():
+        wait_time = int(time[:-1]) * time_units[time[-1]]
+        await interaction.response.send_message(f"Reminder set! I will remind you in {time}.", ephemeral=True)
         
+        await asyncio.sleep(wait_time)  # Wait for the specified time
+        await interaction.user.send(f"Reminder: {message}")  # Send a DM to the user
+    else:
+        await interaction.response.send_message("Invalid time format! Use a format like `10s` for seconds, `5m` for minutes, or `1h` for hours.", ephemeral=True)
+        
+@bot.tree.command(name="choose", description="Randomly choose one option from a list of provided choices.")
+@app_commands.describe(options="Enter multiple options separated by commas")
+async def choose(interaction: discord.Interaction, options: str):
+    # Split the options into a list
+    choices = options.split(',')
+    
+    # Strip whitespace and choose a random option
+    selected = random.choice([option.strip() for option in choices])
+    
+    # Send the selected choice
+    await interaction.response.send_message(f"I choose: {selected}")
+
+
+@bot.tree.command(name="kick", description="Kick a member from the server.")
+@app_commands.describe(member="The member to kick", reason="(Optional) Reason for kicking the member")
+async def kick(interaction: discord.Interaction, member: discord.Member, reason: str = None):
+    if interaction.user.guild_permissions.kick_members:
+    # Check if the user has permission to kick members
+        try:
+            await member.kick(reason=reason)
+            await interaction.response.send_message(f"{member.display_name} has been kicked from the server.", ephemeral=True)
+        except discord.Forbidden:
+            await interaction.response.send_message("I do not have permission to kick this member.", ephemeral=True)
+        except discord.HTTPException:
+            await interaction.response.send_message("Failed to kick the member due to an HTTP error.", ephemeral=True)
+    else:
+        await interaction.response.send_message("You do not have permission to kick members.", ephemeral=True)
+@bot.tree.command(name="ban", description="Bans a member from the server")
+@app_commands.describe(member="The member to ban", reason="(Optional) Reason for banning the member")
+async def ban(interaction: discord.Interaction, member : discord.Member,reason: str = None):
+    if interaction.user.guild_permissions.ban_members:  # Check if the user has permission to ban members
+        # Check if the user has permission to ban members
+        try:
+            await member.ban(reason=reason)
+            await interaction.response.send_message(f"{member.display_name} has been banned from the server.", ephemeral=True)
+        except discord.Forbidden:
+            await interaction.response.send_message("I do not have permission to ban this member.", ephemeral=True)
+        except discord.HTTPException:
+            await interaction.response.send_message("Failed to ban the member due to an HTTP error.", ephemeral=True)
+    else:
+        await interaction.response.send_message("You do not have permission to ban members.", ephemeral=True)
+
+@bot.tree.command(name="funfact", description="Get a random fun fact from the web.")
+async def funfact(interaction: discord.Interaction):
+    # Fetch a random fun fact
+    fact = await fetch_fun_fact()
+    
+    # Send the fun fact to the user
+    await interaction.response.send_message(f"🧠 Fun Fact: {fact}")
+
+@bot.tree.command(name="motivational_quotes", description= "Get a random motivational quote from the web.")
+async def motivational_quote(interaction : discord.Interaction):
+    quote = await fetch_motivational_quotes()
+
+    await interaction.response.send_message(f"💪 Motivational fact: {quote}")
+
+@bot.tree.command(name="denga_denga",description="Denga denga?")
+async def denga_denga(interaction: discord.Interaction):
+    await interaction.response.send_message(random.choice(bangla_list))
+
+
+
+@bot.tree.command(name="scramble", description="Unscramble the given word!")
+async def scramble(interaction: discord.Interaction):
+    word = random.choice(words)
+    scrambled_word = ''.join(random.sample(word, len(word)))
+
+    await interaction.response.send_message(f"Unscramble the word: **{scrambled_word}**")
+
+    # Record the start time
+    start_time = time.time()
+
+    def check(m):
+        return m.author == interaction.user and m.channel == interaction.channel
+
+    try:
+        guess = await bot.wait_for('message', timeout=15.0, check=check)
+        
+        # Calculate the time taken to guess
+        end_time = time.time()
+        time_taken = end_time - start_time  # Calculate time in seconds
+
+        if guess.content.lower() == word:
+            await interaction.channel.send(f"Correct! 🎉 It took you {time_taken:.2f} seconds.")
+        else:
+            await interaction.channel.send(f"Wrong! The correct word was **{word}**.")
+
+    except asyncio.TimeoutError:
+        await interaction.channel.send(f"Time's up! The correct word was **{word}**.")
 
 @bot.tree.command(name="hello")
 async def hello(interaction : discord.Interaction):
