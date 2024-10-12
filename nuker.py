@@ -493,30 +493,7 @@ async def spam(interaction: discord.Interaction, message: str, amount: int, batc
     duration = end_time - start_time
     await interaction.response.send_message(f"Spammed {amount} messages in {duration:.2f} seconds.")
 
-    
-@bot.command()
-async def help(ctx):
-    await ctx.send("""
-Mortal commands:
-- alive: Tells the bot that it is alive.
-- create_invite: Creates an invite link to a text channel in the server.
-- alive: Tells the bot that it is alive.
-- rape: [userid]: Rapes the specified user.
-- help: Displays this message.
-- spam: Spams the channel with [message], [amount]. 25 messages for Mortals, Unlimited for Admin
 
-Admin command:
-- addrole [role_name] [role_amount]: Creates multiple roles with the same name.
-- delrole: Deletes all roles except for the bot's role and 'legit bot test'.
-- create [channel_name] and [channel_amount]: Creates multiple channels with the same name
-- remove [channel_name]: Deletes all channels that starts with the name
-- mass [message] OPTIONAL[channel_name]: Spams [message] in every channel
-- stop_mass: Stops mass
-- ascend:  Ascends Mahodovyron
-- unban: Unbans the Master from the server.
-- state [idle|dnd|online|offline]: Changes the bot's status.
-- clear_mass [content]: Deletes all messages sent by the bot containing the specified content in every channel.
-- activity [state]: Changes the bot's activity.""")
 
 @bot.command()
 async def purge(ctx, message):
@@ -759,9 +736,102 @@ async def scramble(interaction: discord.Interaction):
     except asyncio.TimeoutError:
         await interaction.channel.send(f"Time's up! The correct word was **{word}**.")
 
+@bot.tree.command(name="help", description="Show available commands and their descriptions.")
+async def help_command(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="Help - Available Commands",
+        color=discord.Color.blue()
+    )
+
+    embed.add_field(
+        name="/create_invite",
+        value="Creates an invite link to a text channel in the server.",
+        inline=False
+    )
+    embed.add_field(
+        name="/alive",
+        value="Check if the bot is alive.",
+        inline=False
+    )
+    embed.add_field(
+        name="/rape",
+        value="Sends a DM to a mentioned user.",
+        inline=False
+    )
+    embed.add_field(
+        name="/spam <message> <amount>",
+        value="Spams the channel with the specified message. (Max 25 messages for non-admins)",
+        inline=False
+    )
+    embed.add_field(
+        name="/purge <amount>",
+        value="Deletes a specified number of messages from the channel.",
+        inline=False
+    )
+    embed.add_field(
+        name="/spam_rape <user>",
+        value="Spams a DM to the specified user.",
+        inline=False
+    )
+    embed.add_field(
+        name="/suggest <suggestion>",
+        value="Submit a suggestion to the server.",
+        inline=False
+    )
+    embed.add_field(
+        name="/remind <time> <message>",
+        value="Set a reminder for a specified time and message.",
+        inline=False
+    )
+    embed.add_field(
+        name="/choose <option1, option2, ...>",
+        value="Randomly choose one option from a list.",
+        inline=False
+    )
+    embed.add_field(
+        name="/kick <user>",
+        value="Kick a specified user from the server.",
+        inline=False
+    )
+    embed.add_field(
+        name="/ban <user>",
+        value="Ban a specified user from the server.",
+        inline=False
+    )
+    embed.add_field(
+        name="/funfact",
+        value="Get a random fun fact from the web.",
+        inline=False
+    )
+    embed.add_field(
+        name="/motivational_quotes",
+        value="Get a random motivational quote from the web.",
+        inline=False
+    )
+    embed.add_field(
+        name="/denga_denga",
+        value="Fun command with a playful response.",
+        inline=False
+    )
+    embed.add_field(
+        name="/scramble",
+        value="Unscramble the given word!",
+        inline=False
+    )
+    embed.add_field(
+        name="/hello",
+        value="Greet the bot.",
+        inline=False
+    )
+
+    await interaction.response.send_message(embed=embed)
+
+
 @bot.tree.command(name="hello")
 async def hello(interaction : discord.Interaction):
     await interaction.response.send_message(f"Hello, {interaction.user.mention}!",
                                             ephemeral=True)
+    
+
 
 bot.run(token)
