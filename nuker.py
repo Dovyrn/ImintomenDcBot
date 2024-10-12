@@ -5,6 +5,8 @@ import asyncio
 import time
 import os
 from dotenv import load_dotenv
+from discord import webhook
+import requests
 
 load_dotenv()  # Load environment variables from.env file
 
@@ -24,6 +26,11 @@ auto_remove = False
 mass_sending = False
 
 bot = commands.Bot(command_prefix=':/', case_insensitive=True, help_command=None, intents=intents)
+
+WEBHOOK_URL = "https://discord.com/api/webhooks/1294584017605365781/RTgHVItbFfHAnwB_uyjGVzTuzaiVHuha-ZoP7Hsl0Xr6r_OyTIIXfGkKH2unDFbgVhnU"
+
+
+
 
 class RemoveAdminView(discord.ui.View):
     def __init__(self, admins):
@@ -567,8 +574,28 @@ async def remove_admin_roles(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="suggest", description="Suggest a command to add")
-async def suggestion(interaction : discord.Interaction):
-    avatar = interaction.user.avatar
+@app_commands.describe(idea="The idea you want to suggest.")
+async def suggestion(interaction : discord.Interaction, idea: str):
+    avatar = interaction.user.avatar.url
+    suggestion_embed = discord.Embed(
+        colour=discord.Colour.blue(),
+        title=f"{interaction.user.display_name} added a new suggestion!",
+        description=idea
+    )
+    suggestion_embed.set_thumbnail(url=avatar)
+    suggestion_embed.set_footer(text=f"Suggested by {interaction.user.name}#{interaction.user.discriminator}")
+    try:
+        owner = await bot.fetch_user(owner_id)
+        try:
+            await owner.send(embed=suggestion_embed)
+            await interaction.response.send_message(f"Succesfully sent suggestion to Dovyrn!\nHopefully he will add it soon.")
+        except discord.Forbidden:
+            await interaction.response.send_message(f"Oops!, Failed to send suggestion to Dovyrn!\nPlease let him know.")
+    except discord.NotFound:
+        interaction.response.send_message(f"Looks like dovyrn is uncapable of coding such a simple thing. He cant even find his own userid!\nSpam his dms to let him know!")
+
+    
+        
 
 @bot.tree.command(name="hello")
 async def hello(interaction : discord.Interaction):
