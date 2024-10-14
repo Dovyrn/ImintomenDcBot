@@ -700,7 +700,7 @@ async def funfact(interaction: discord.Interaction):
 async def motivational_quote(interaction : discord.Interaction):
     quote = await fetch_motivational_quotes()
 
-    await interaction.response.send_message(f"💪 Motivational fact: {quote}")
+    await interaction.response.send_message(f"💪 Motivational quote: {quote}")
 
 @bot.tree.command(name="denga_denga",description="Denga denga?")
 async def denga_denga(interaction: discord.Interaction):
