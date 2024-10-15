@@ -475,7 +475,6 @@ async def rape(ctx, user: discord.User):
 @bot.tree.command()
 @app_commands.describe(message="The message to send", amount="Amount of messages to send", batch = "Batches of messages to send")
 async def spam(interaction: discord.Interaction, message: str, amount: int, batch : int):
-    await interaction.response.defer()
     if amount > 25 and interaction.user.id != owner_id:
         await interaction.response.send_message("Maximum amount of 25 messages for Mortals.")
         return
