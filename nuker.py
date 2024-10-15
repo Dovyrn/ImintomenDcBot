@@ -9,9 +9,15 @@ import random
 import aiohttp
 from bs4 import BeautifulSoup
 from words import words
+from PIL import Image
+import io
+
+
 
 load_dotenv()  # Load environment variables from.env file
 
+bubble_image_path = os.path.join(os.path.dirname(__file__), "image.gif")
+bubble_image = Image.open(bubble_image_path).convert("RGBA")
 
 token = os.getenv('DISCORD_BOT_TOKEN')
 owner_id = 946386383809949756 #dovyrn
@@ -23,6 +29,8 @@ intents.message_content = True  # Enable message content intent (if needed)
 intents.members = True
 
 auto_remove = False
+
+frequent_uses = {}
 
 
 mass_sending = False
@@ -131,6 +139,7 @@ async def on_ready():
 @bot.tree.command(name="check_admin", description="Check which users have admin permissions")
 async def check_admins(interaction: discord.Interaction):
     if interaction.user.id == owner_id:  # Ensure only the owner can run this
+        await interaction.response.defer()
         admins = [
             (member.id, member.display_name) for member in interaction.guild.members
             if any(role.permissions.administrator for role in member.roles)
@@ -192,6 +201,7 @@ async def on_member_update(before, after):
 @app_commands.describe(state="True/False")
 async def toggle(interaction: discord.Interaction, state: str):
     if interaction.user.id == owner_id:
+        await interaction.response.defer()
         global auto_remove
         if state.lower() == "true":
             auto_remove = True
@@ -208,6 +218,7 @@ async def toggle(interaction: discord.Interaction, state: str):
 @app_commands.describe(name="What name for the channels", amount= "How many channels to create")
 async def create(interaction: discord.Interaction, name: str, amount: int):
     if interaction.user.id == owner_id:
+        await interaction.response.defer()
         start_time = time.time()
         allow_mentions = discord.AllowedMentions(everyone=True)
         guild = interaction.guild
@@ -467,6 +478,7 @@ async def rape(ctx, user: discord.User):
 @bot.tree.command()
 @app_commands.describe(message="The message to send", amount="Amount of messages to send", batch = "Batches of messages to send")
 async def spam(interaction: discord.Interaction, message: str, amount: int, batch : int):
+    await interaction.response.defer()
     if amount > 25 and interaction.user.id != owner_id:
         await interaction.response.send_message("Maximum amount of 25 messages for Mortals.")
         return
@@ -604,6 +616,7 @@ async def remove_admin_roles(interaction: discord.Interaction):
 @bot.tree.command(name="suggest", description="Suggest a command to add")
 @app_commands.describe(idea="The idea you want to suggest.")
 async def suggestion(interaction : discord.Interaction, idea: str):
+    await interaction.response.defer()
     avatar = interaction.user.avatar.url
     suggestion_embed = discord.Embed(
         colour=discord.Colour.blue(),
@@ -688,10 +701,44 @@ async def ban(interaction: discord.Interaction, member : discord.Member,reason: 
     else:
         await interaction.response.send_message("You do not have permission to ban members.", ephemeral=True)
 
+@bot.tree.command(name="gif", description="Convert an uploaded image to a GIF")
+async def convert_to_gif(interaction: discord.Interaction, attachment: discord.Attachment):
+    # Defer the response to avoid timing out
+    await interaction.response.defer()
+
+    if not attachment:
+        await interaction.followup.send("Please upload an image to convert.", ephemeral=True)
+        return
+    
+    # Download the image
+    image_data = await attachment.read()
+    
+    # Open the image with Pillow
+    try:
+        image = Image.open(io.BytesIO(image_data))
+    except Exception as e:
+        await interaction.followup.send(f"Failed to open the image: {e}", ephemeral=True)
+        return
+    
+    # Convert the image to RGB mode if needed
+    if image.mode != 'RGB':
+        image = image.convert('RGB')
+    
+    # Save the image as a GIF
+    gif_buffer = io.BytesIO()
+    image.save(gif_buffer, format='GIF')
+    gif_buffer.seek(0)
+    
+    # Send the GIF back to the user using followup
+    await interaction.followup.send(file=discord.File(gif_buffer, filename="converted.gif"))
+
 @bot.tree.command(name="funfact", description="Get a random fun fact from the web.")
 async def funfact(interaction: discord.Interaction):
+    await interaction.response.defer()
     # Fetch a random fun fact
     fact = await fetch_fun_fact()
+
+    frequent_uses.update({interaction.user.id: +1})
     
     # Send the fun fact to the user
     await interaction.response.send_message(f"🧠 Fun Fact: {fact}")
@@ -706,8 +753,40 @@ async def motivational_quote(interaction : discord.Interaction):
 async def denga_denga(interaction: discord.Interaction):
     await interaction.response.send_message(random.choice(bangla_list))
 
+@bot.tree.command(name="speechbubble", description="Add a speech bubble to your image.")
+async def speechbubble(interaction: discord.Interaction, attachment: discord.Attachment):
+    # Defer to avoid timeout
+    await interaction.response.defer()
 
+    if not attachment:
+        await interaction.followup.send("Please attach an image!", ephemeral=True)
+        return
 
+    # Download the attached image
+    image_data = await attachment.read()
+    try:
+        base_image = Image.open(io.BytesIO(image_data)).convert("RGBA")  # Convert to RGBA to ensure transparency
+    except Exception as e:
+        await interaction.followup.send(f"Could not open the image: {e}", ephemeral=True)
+        return
+
+    # Resize the speech bubble to fit the base image
+    bubble_resized = bubble_image.resize((base_image.width, base_image.height // 4), Image.LANCZOS)
+
+    # Create a new base image to hold the result (to handle transparency properly)
+    new_image = Image.new("RGBA", base_image.size)  # Transparent background
+    new_image.paste(base_image, (0, 0))  # Paste the base image onto the new one
+
+    # Add the speech bubble at the top of the new base image
+    new_image.paste(bubble_resized, (0, 0), bubble_resized.split()[3])  # Use the alpha channel as a mask
+
+    # Save the result to a BytesIO object
+    final_buffer = io.BytesIO()
+    new_image.save(final_buffer, format="PNG")
+    final_buffer.seek(0)
+
+    # Send the modified image back as a response
+    await interaction.followup.send(file=discord.File(final_buffer, filename="speechbubble_image.png"))
 @bot.tree.command(name="scramble", description="Unscramble the given word!")
 async def scramble(interaction: discord.Interaction):
     word = random.choice(words)

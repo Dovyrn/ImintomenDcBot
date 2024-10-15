@@ -4,3 +4,4 @@ pypresence==4.3.0
 requests
 aiohttp
 beautifulsoup4
+pillow
