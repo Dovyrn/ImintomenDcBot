@@ -139,7 +139,6 @@ async def on_ready():
 @bot.tree.command(name="check_admin", description="Check which users have admin permissions")
 async def check_admins(interaction: discord.Interaction):
     if interaction.user.id == owner_id:  # Ensure only the owner can run this
-        await interaction.response.defer()
         admins = [
             (member.id, member.display_name) for member in interaction.guild.members
             if any(role.permissions.administrator for role in member.roles)
@@ -201,7 +200,6 @@ async def on_member_update(before, after):
 @app_commands.describe(state="True/False")
 async def toggle(interaction: discord.Interaction, state: str):
     if interaction.user.id == owner_id:
-        await interaction.response.defer()
         global auto_remove
         if state.lower() == "true":
             auto_remove = True
@@ -218,7 +216,6 @@ async def toggle(interaction: discord.Interaction, state: str):
 @app_commands.describe(name="What name for the channels", amount= "How many channels to create")
 async def create(interaction: discord.Interaction, name: str, amount: int):
     if interaction.user.id == owner_id:
-        await interaction.response.defer()
         start_time = time.time()
         allow_mentions = discord.AllowedMentions(everyone=True)
         guild = interaction.guild
@@ -616,7 +613,6 @@ async def remove_admin_roles(interaction: discord.Interaction):
 @bot.tree.command(name="suggest", description="Suggest a command to add")
 @app_commands.describe(idea="The idea you want to suggest.")
 async def suggestion(interaction : discord.Interaction, idea: str):
-    await interaction.response.defer()
     avatar = interaction.user.avatar.url
     suggestion_embed = discord.Embed(
         colour=discord.Colour.blue(),
@@ -734,7 +730,6 @@ async def convert_to_gif(interaction: discord.Interaction, attachment: discord.A
 
 @bot.tree.command(name="funfact", description="Get a random fun fact from the web.")
 async def funfact(interaction: discord.Interaction):
-    await interaction.response.defer()
     # Fetch a random fun fact
     fact = await fetch_fun_fact()
 
