@@ -11,7 +11,6 @@ from bs4 import BeautifulSoup
 from words import words
 from PIL import Image
 import io
-import bardapi
 
 
 load_dotenv()  # Load environment variables from.env file
