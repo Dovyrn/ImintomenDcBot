@@ -911,6 +911,7 @@ async def help_command(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 
+
 @bot.tree.command(name="hello")
 async def hello(interaction : discord.Interaction):
     await interaction.response.send_message(f"Hello, {interaction.user.mention}!",
