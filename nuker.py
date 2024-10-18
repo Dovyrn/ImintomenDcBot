@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 from words import words
 from PIL import Image
 import io
-
+import bardapi
 
 
 load_dotenv()  # Load environment variables from.env file
@@ -31,6 +31,8 @@ intents.members = True
 auto_remove = False
 
 frequent_uses = {}
+
+bard_token = "g.a000pAgFB6gVgfrW7Y549Fv7AULKXNDmoxRn5ka19SxkiiRkMmheJm8yzILKtxakVU7t6WTo_QACgYKASkSAQ8SFQHGX2MiiuYgBx_r7UW1GBq9kKWv7BoVAUF8yKpr8leDYwygzUxIkZabdfMz0076"
 
 
 mass_sending = False
@@ -126,6 +128,8 @@ class RemoveAdminView(discord.ui.View):
             await interaction.response.send_message("Could not find the selected user.", ephemeral=True)
 
 
+conversation_history = []
+
 @bot.event
 async def on_ready():   
     print(f'Bot is ready as {bot.user}')
@@ -215,6 +219,7 @@ async def toggle(interaction: discord.Interaction, state: str):
 @bot.tree.command()
 @app_commands.describe(name="What name for the channels", amount= "How many channels to create")
 async def create(interaction: discord.Interaction, name: str, amount: int):
+    interaction.response.defer()
     if interaction.user.id == owner_id:
         start_time = time.time()
         allow_mentions = discord.AllowedMentions(everyone=True)
@@ -232,9 +237,9 @@ async def create(interaction: discord.Interaction, name: str, amount: int):
         end_time = time.time()
         duration = end_time - start_time
         
-        await interaction.response.send_message(f"Created {amount} channels named '{name}' in {duration:.2f} seconds.")
+        await interaction.followup.send(f"Created {amount} channels named '{name}' in {duration:.2f} seconds.")
     else:
-        await interaction.response.send_message("This command's power is a tempest, beyond mortal comprehension.")
+        await interaction.followup.send("This command's power is a tempest, beyond mortal comprehension.")
 
 @bot.hybrid_command()
 async def ping(ctx):
@@ -511,6 +516,12 @@ async def purge(ctx, message):
             await msg.delete()
             deleted_count += 1
     await ctx.send(f"Deleted {deleted_count} with the content {message}")
+
+@bot.command(name='chat')
+async def chat(ctx, *, user_message: str):
+    response = bardapi.core.Bard(bard_token).get_answer(user_message)['content']
+
+    await ctx.send(response)
 
 @bot.command()
 @commands.cooldown(per=1, rate=5)

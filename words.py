@@ -98,5 +98,8 @@ words = [
     "candy",
     "snack",
     "sandwich",
-    "waffle"
+    "waffle",
+    "denga_denga",
+    "mota"
+    "dovyrn"
 ]
