@@ -32,7 +32,6 @@ auto_remove = False
 
 frequent_uses = {}
 
-bard_token = "g.a000pAgFB6gVgfrW7Y549Fv7AULKXNDmoxRn5ka19SxkiiRkMmheJm8yzILKtxakVU7t6WTo_QACgYKASkSAQ8SFQHGX2MiiuYgBx_r7UW1GBq9kKWv7BoVAUF8yKpr8leDYwygzUxIkZabdfMz0076"
 
 
 mass_sending = False
@@ -516,12 +515,6 @@ async def purge(ctx, message):
             await msg.delete()
             deleted_count += 1
     await ctx.send(f"Deleted {deleted_count} with the content {message}")
-
-@bot.command(name='chat')
-async def chat(ctx, *, user_message: str):
-    response = bardapi.core.Bard(bard_token).get_answer(user_message)['content']
-
-    await ctx.send(response)
 
 @bot.command()
 @commands.cooldown(per=1, rate=5)
