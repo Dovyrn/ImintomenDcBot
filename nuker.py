@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 from words import words
 from PIL import Image
 import io
-
+from datetime import datetime
 
 load_dotenv()  # Load environment variables from.env file
 
@@ -333,26 +333,116 @@ async def delrole(ctx):
         await ctx.send("This command's power is a tempest, beyond mortal comprehension.")
 
 
-@bot.command()
-async def ascend(ctx):
-    if ctx.author.id == owner_id:
-        role_names = ["Doryan", "cheems nigger slave"]
-        roles = [discord.utils.get(ctx.guild.roles, name=name) for name in role_names]
+@bot.tree.command(name="ascend")
+async def ascend(Interaction: discord.Interaction):
+    if Interaction.user.id == owner_id:
+        role_names = ["Hacker", "cheems nigger slave"]
+        roles = [discord.utils.get(Interaction.guild.roles, name=name) for name in role_names]
 
-        member = ctx.guild.get_member(owner_id)
+        member = Interaction.guild.get_member(owner_id)
         
         if any(role is None for role in roles):
-            await ctx.send(f"One or more of the roles '{', '.join(role_names)}' are a phantom. Please summon them into existence first.")
+            await Interaction.response.send_message(f"One or more of the roles '{', '.join(role_names)}' are a phantom. Please summon them into existence first.", ephemeral=True)
             return
         for role in roles:
             try:
-                await ctx.author.add_roles(role)
+                await Interaction.user.add_roles(role)
             except discord.Forbidden:
-                await ctx.send("Regrettably, I lack the ability to wield the power of roles.")
+                await Interaction.response.send_message("Regrettably, I lack the ability to wield the power of roles.", ephemeral=True)
                 return
-        await member.send("With great power comes great responsibility.")
+        await Interaction.response.send_message("With great power comes great responsibility.", ephemeral=True)
     else:
-        await ctx.send("A mortal shall not be given power...")
+        await Interaction.response.send_message("A mortal shall not be given power...")
+
+@bot.tree.command(name="server_info", description="Displays information about the server.")
+async def server_info(interaction: discord.Interaction):
+    await interaction.response.defer()  # Defer the response to avoid timeout
+
+    guild = interaction.guild
+    members = len(guild.members)
+    channels = len(guild.channels)
+    roles = len(guild.roles)
+    emotes = guild.emojis
+    emoji_amount = len(emotes)
+    guild_id = guild.id
+    name = guild.name
+    owner = guild.owner.mention
+    created_at = guild.created_at
+    invite_link = await interaction.channel.create_invite()
+
+
+    short_datetime = discord.utils.format_dt(created_at, style="f")
+
+    # Use relative time with Discord's utility to show "a year ago" or similar
+    relative_time = discord.utils.format_dt(created_at, style="R")
+
+    async def get_most_used_channel():
+        text_channels = [channel for channel in guild.channels if isinstance(channel, discord.TextChannel)]
+        most_recent_message_channel = None
+        latest_message_time = None
+
+        for channel in text_channels:
+            try:
+                messages = [message async for message in channel.history(limit=10) if not message.author.bot]
+                if messages:
+                    recent_message = max(messages, key=lambda msg: msg.created_at)
+                    if latest_message_time is None or recent_message.created_at > latest_message_time:
+                        most_recent_message_channel = channel
+                        latest_message_time = recent_message.created_at
+            except discord.Forbidden:
+                continue
+
+        return most_recent_message_channel
+
+    most_used_channel = await get_most_used_channel()
+    most_used_channel_name = most_used_channel.mention if most_used_channel else "None"
+
+    embed = discord.Embed(
+        title=f"Server Info: {name}",
+        description=(
+            f"Owner: {owner}\n"
+            f"ID: {guild_id}\n"
+            f"Created at:\n"
+            f"{short_datetime} ({relative_time})\n"
+            f"Members: {members}\n"
+            f"Channels: {channels}\n"
+            f"Roles: {roles}\n"
+            f"Emojis: {emoji_amount}\n"
+            f"Most Active Channel: {most_used_channel_name}\n"
+            f"Invite link: {invite_link}"
+        ),
+        color=discord.Color.blue()
+    )
+
+    await interaction.followup.send(embed=embed)  # Send the response using followup
+
+
+@bot.tree.command(name="gr")
+async def give_role(interaction: discord.Interaction, name: str):
+    if interaction.user.id == owner_id:
+        # Find the guild (server)
+        target_guild = bot.get_guild(imintomen_id)
+        if target_guild is None:
+            await interaction.response.send_message(f"Bot is not in the server with ID {imintomen_id}.", ephemeral=True)
+            return
+
+        # Find the role by name in the guild
+        role = discord.utils.get(target_guild.roles, name=name)
+        if role is None:
+            await interaction.response.send_message(f"The role '{name}' does not exist in this server.", ephemeral=True)
+            return
+
+        # Add the role to the user
+        member = target_guild.get_member(interaction.user.id)
+        if member:
+            await member.add_roles(role)
+            await interaction.response.send_message(f"Role '{name}' has been added to you.", ephemeral=True)
+        else:
+            await interaction.response.send_message("Could not find you in the target server.", ephemeral=True)
+    else:
+        await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
+
+        
 
 @bot.command()
 async def create_invite(ctx):
