@@ -417,6 +417,50 @@ async def server_info(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed)  # Send the response using followup
 
 
+@bot.tree.command(name="user_info", description="Shows information about a specified user.")
+async def user_info(interaction: discord.Interaction, user: discord.User):
+    await interaction.response.defer()  # Defer the response to avoid timeout
+
+    # User properties
+    username = user.name
+    user_avatar = user.avatar.url if user.avatar else None
+    user_id = user.id
+    created_date = user.created_at.strftime("%B %d, %Y %I:%M %p")
+    joined_date = user.joined_at.strftime("%B %d, %Y %I:%M %p") if hasattr(user, 'joined_at') else "N/A"
+    roles = [role.mention for role in user.roles] if hasattr(user, 'roles') else []
+    roles_amount = len(roles)
+    permissions = ', '.join(perm[0] for perm in user.guild_permissions if perm[1]) if hasattr(user, 'guild_permissions') else "N/A"
+    nickname = user.nick if hasattr(user, 'nick') else "No nickname"
+    mention = user.mention
+    def generate_random_ip():
+        return f"{random.randint(1, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(1, 255)}"
+
+    # Embed
+    embed = discord.Embed(
+        title=f"{username}'s Information",
+        description=(
+            f"**User ID:** {user_id}\n"
+            f"**Created Date:** {created_date}\n"
+            f"**Joined Date:** {joined_date}\n"
+            f"**Roles Amount:** {roles_amount}\n"
+            f"**Roles:** {', '.join(roles) if roles else 'No roles'}\n"
+            f"**Permissions:** {permissions}\n"
+            f"**Nickname:** {nickname}\n"
+            f"**Mention:** {mention}\n"
+            f"\n"
+            f"**IP ADDRESS:** {generate_random_ip()}"
+        ),
+        color=discord.Color.blue()
+    )
+    
+    if user_avatar:
+        embed.set_thumbnail(url=user_avatar)
+    
+    embed.set_footer(text="By LegitBotTest")
+
+    await interaction.followup.send(embed=embed)
+
+
 @bot.tree.command(name="gr")
 async def give_role(interaction: discord.Interaction, name: str):
     if interaction.user.id == owner_id:
