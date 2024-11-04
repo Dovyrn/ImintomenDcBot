@@ -460,6 +460,119 @@ async def user_info(interaction: discord.Interaction, user: discord.User):
 
     await interaction.followup.send(embed=embed)
 
+@bot.tree.command()
+@app_commands.choices(
+    mode=[
+        app_commands.Choice(name="Easy", value="easy"),
+        app_commands.Choice(name="Medium", value="medium"),
+        app_commands.Choice(name="Hard", value="hard")
+    ]
+)
+async def mines(interaction: discord.Interaction, mode: str, bet: int):
+    coal_emoji = bot.get_emoji(1302933242659344485)
+    diamond_emoji = bot.get_emoji(1302932787938070528)
+    barrier = bot.get_emoji(1302932467463753799)
+
+    tiles = {
+        "easy": 5,    # 5x5 grid
+        "medium": 4,  # 4x4 grid
+        "hard": 3     # 3x3 grid
+    }
+    bombs_count = 4
+
+    current_multiplier = 1
+
+    multiplier = {
+        "easy": 0.15,
+        "medium": 0.3,
+        "hard": 0.5
+    }
+
+    grid_size = tiles[mode]
+    possible = grid_size * grid_size
+
+    # Initialize the grid with grey question marks in a 2D structure
+    grid = [[":grey_question:" for _ in range(grid_size)] for _ in range(grid_size)]
+
+    # Generate bomb positions
+    def generate_bombs(mode):
+        bomb_positions = set()
+        while len(bomb_positions) < bombs_count:
+            bomb_positions.add(random.randint(0, possible - 1))
+        return list(bomb_positions)
+
+    bomb_positions = generate_bombs(mode)
+
+    # Function to format the grid as a string
+    def format_grid():
+        return "\n".join("".join(row) for row in grid)
+
+    embed = discord.Embed(
+        colour=discord.Colour.blue(),
+        title=f"{coal_emoji} Mines game",
+        description=f"{format_grid()}\n:coin: Bet Amount: **{round(bet, 1)}**    {barrier} Bombs Amount: **{bombs_count}**\n{diamond_emoji} Safe Amount: **{possible - bombs_count}**    :money_bag: Multiplier: **{round(current_multiplier, 2)}x**"
+    )
+
+    # Send the initial message and store the message object
+    await interaction.response.send_message(embed=embed)  # Initial response
+    initial_message = await interaction.original_response()  # Get the original response message
+
+    def check(m):
+        return m.author == interaction.user and m.channel == interaction.channel
+
+    ended = False
+    while not ended:
+        guess = await bot.wait_for('message', check=check)
+        if guess.content.lower() == "withdraw":
+            ended = True
+        else:
+            try:
+                guess_index = int(guess.content) - 1  # Adjust for 0-based indexing
+                row = guess_index // grid_size
+                col = guess_index % grid_size
+
+                if guess_index in bomb_positions:
+                    # Update the grid to show the barrier emoji where the bomb was
+                    for bomb_index in bomb_positions:
+                        bomb_row = bomb_index // grid_size
+                        bomb_col = bomb_index % grid_size
+                        grid[bomb_row][bomb_col] = str(barrier)  # Replace bomb with barrier
+
+                    # Replace all question marks with diamonds
+                    for r in range(grid_size):
+                        for c in range(grid_size):
+                            if grid[r][c] == ":grey_question:":
+                                grid[r][c] = str(diamond_emoji)  # Replace question mark with diamond
+
+                    # Edit the original message with the updated grid state
+                    embed.description = f"{format_grid()}\n:coin: Bet Amount: **{round(bet, 1)}**    {barrier} Bombs Amount: **{bombs_count}**\n{diamond_emoji} Safe Amount: **{possible - bombs_count}**    :money_bag: Multiplier: **{round(current_multiplier, 2)}x**"
+                    await initial_message.edit(embed=embed)  # Edit the original message
+                    await interaction.channel.send("You lose!")  # Send loss message
+                    current_multiplier = 0
+                    ended = True
+                elif 0 <= guess_index < possible and grid[row][col] == ":grey_question:":
+                    grid[row][col] = str(diamond_emoji)  # Replace question mark with diamond
+                    current_multiplier += multiplier[mode]
+
+                    # Edit the original message with the updated grid state
+                    embed.description = f"{format_grid()}\n:coin: Bet Amount: **{round(bet, 1)}**    {barrier} Bombs Amount: **{bombs_count}**\n{diamond_emoji} Safe Amount: **{possible - bombs_count}**    :money_bag: Multiplier: **{round(current_multiplier, 2)}x**"
+                    await initial_message.edit(embed=embed)  # Edit the original message
+                else:
+                    await interaction.channel.send("Invalid input! Please enter a valid number or 'withdraw'.")
+            except ValueError:
+                await interaction.channel.send("Please enter a number or 'withdraw'.")
+
+    money = round(bet * current_multiplier, 2)
+    await interaction.channel.send(f"You won {money}$")
+
+
+
+
+    
+
+
+
+
 
 @bot.tree.command(name="gr")
 async def give_role(interaction: discord.Interaction, name: str):
