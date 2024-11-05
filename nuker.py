@@ -12,11 +12,14 @@ from words import words
 from PIL import Image
 import io
 from datetime import datetime
+from pymongo import MongoClient
 
 load_dotenv()  # Load environment variables from.env file
 
 bubble_image_path = os.path.join(os.path.dirname(__file__), "image.gif")
 bubble_image = Image.open(bubble_image_path).convert("RGBA")
+
+connection_string = os.getenv("MONGO")
 
 token = os.getenv('DISCORD_BOT_TOKEN')
 owner_id = 946386383809949756 #dovyrn
@@ -31,6 +34,9 @@ auto_remove = False
 
 frequent_uses = {}
 
+client = MongoClient(connection_string)
+db = client['currency_database']
+users_collection = db["users"]
 
 
 mass_sending = False
@@ -49,6 +55,29 @@ bangla_list = ["https://tenor.com/view/bangla-bangladeshi-gifgari-shomudro-bilas
                "https://tenor.com/view/dipjol-bangla-cinema-abar-bol-gifgari-bangladesh-gif-19921422",
                "https://tenor.com/view/gifgari-chondokobi-ripon-ripon-video-bangla-bangla-gif-gif-18289155",
                "https://tenor.com/view/gifgari-gifgari-classic-razzak-hoi-hoi-hoi-rongila-gif-18208824"]
+
+
+
+def add_user(user_id):
+    user = users_collection.find_one({"_id": user_id})
+    if not user:
+        # If the user is not found, insert a new document with an initial balance of 0
+        users_collection.insert_one({"_id": user_id, "balance": 1000})
+        print(f"User {user_id} added with an initial balance of 1000.")
+    else:
+        print(f"User {user_id} already exists in the database.")
+
+def update_balance(user_id, amount: int):
+    users_collection.update_one({"_id": user_id}, {"$inc": {"balance": amount}})
+    print(f"User {user_id} balance updated by {amount}.")
+
+def get_balance(user_id):
+    user = users_collection.find_one({"_id": user_id})
+    if user:
+        return user["balance"]
+    else:
+        return "User not found."
+
 
 
 async def fetch_fun_fact():
@@ -159,6 +188,28 @@ async def check_admins(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
 
+@bot.tree.command(name="add_balance")
+async def test(interaction: discord.Interaction, user: discord.User, amount: int):
+    if interaction.user.id == owner_id:
+        add_user(user_id=user.id)
+        update_balance(user_id=user.id, amount=amount)
+        if amount < 0:
+            await interaction.response.send_message(f"Removed {amount * -1}$ from {user.mention} balance", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"Added {amount}$ to {user.mention} balance", ephemeral=True)
+    else:
+        interaction.response.send_message("Nty")
+
+
+@bot.tree.command(name="get_balance")
+async def balance_get(interaction: discord.Interaction, user: discord.User):
+    add_user(user_id=user.id)
+    await interaction.response.send_message(f"Balance for {user.mention}: {get_balance(user_id=user.id)}$", ephemeral=True)
+
+@bot.tree.command(name="balance")
+async def balance(interaction: discord.Interaction):
+    add_user(user_id=interaction.user.id)
+    await interaction.response.send_message(f"You balance is: {get_balance(user_id=interaction.user.id)}$")
 
 
 @bot.event
@@ -469,110 +520,107 @@ async def user_info(interaction: discord.Interaction, user: discord.User):
     ]
 )
 async def mines(interaction: discord.Interaction, mode: str, bet: int):
-    coal_emoji = bot.get_emoji(1302933242659344485)
-    diamond_emoji = bot.get_emoji(1302932787938070528)
-    barrier = bot.get_emoji(1302932467463753799)
+    add_user(user_id=interaction.user.id)
+    if get_balance(user_id=interaction.user.id) >= bet:
+        update_balance(user_id=interaction.user.id, amount=bet * -1)
+        coal_emoji = bot.get_emoji(1302933242659344485)
+        diamond_emoji = bot.get_emoji(1302932787938070528)
+        barrier = bot.get_emoji(1302932467463753799)
 
-    tiles = {
-        "easy": 5,    # 5x5 grid
-        "medium": 4,  # 4x4 grid
-        "hard": 3     # 3x3 grid
-    }
-    bombs_count = 4
+        tiles = {
+            "easy": 5,    # 5x5 grid
+            "medium": 4,  # 4x4 grid
+            "hard": 3     # 3x3 grid
+        }
+        bombs_count = 4
 
-    current_multiplier = 1
+        current_multiplier = 1
 
-    multiplier = {
-        "easy": 0.15,
-        "medium": 0.3,
-        "hard": 0.5
-    }
+        multiplier = {
+            "easy": 0.15,
+            "medium": 0.3,
+            "hard": 0.5
+        }
 
-    grid_size = tiles[mode]
-    possible = grid_size * grid_size
+        grid_size = tiles[mode]
+        possible = grid_size * grid_size
 
-    # Initialize the grid with grey question marks in a 2D structure
-    grid = [[":grey_question:" for _ in range(grid_size)] for _ in range(grid_size)]
+        # Initialize the grid with grey question marks in a 2D structure
+        grid = [[":grey_question:" for _ in range(grid_size)] for _ in range(grid_size)]
 
-    # Generate bomb positions
-    def generate_bombs(mode):
-        bomb_positions = set()
-        while len(bomb_positions) < bombs_count:
-            bomb_positions.add(random.randint(0, possible - 1))
-        return list(bomb_positions)
+        # Generate bomb positions
+        def generate_bombs(mode):
+            bomb_positions = set()
+            while len(bomb_positions) < bombs_count:
+                bomb_positions.add(random.randint(0, possible - 1))
+            return list(bomb_positions)
 
-    bomb_positions = generate_bombs(mode)
+        bomb_positions = generate_bombs(mode)
 
-    # Function to format the grid as a string
-    def format_grid():
-        return "\n".join("".join(row) for row in grid)
+        # Function to format the grid as a string
+        def format_grid():
+            return "\n".join("".join(row) for row in grid)
 
-    embed = discord.Embed(
-        colour=discord.Colour.blue(),
-        title=f"{coal_emoji} Mines game",
-        description=f"{format_grid()}\n:coin: Bet Amount: **{round(bet, 1)}**    {barrier} Bombs Amount: **{bombs_count}**\n{diamond_emoji} Safe Amount: **{possible - bombs_count}**    :money_bag: Multiplier: **{round(current_multiplier, 2)}x**"
-    )
+        embed = discord.Embed(
+            colour=discord.Colour.blue(),
+            title=f"{coal_emoji} Mines game",
+            description=f"{format_grid()}\n:coin: Bet Amount: **{round(bet, 1)}**    {barrier} Bombs Amount: **{bombs_count}**\n{diamond_emoji} Safe Amount: **{possible - bombs_count}**    :money_bag: Multiplier: **{round(current_multiplier, 2)}x (+{round(current_multiplier -1)}x)**"
+        )
 
-    # Send the initial message and store the message object
-    await interaction.response.send_message(embed=embed)  # Initial response
-    initial_message = await interaction.original_response()  # Get the original response message
+        # Send the initial message and store the message object
+        await interaction.response.send_message(embed=embed)  # Initial response
+        initial_message = await interaction.original_response()  # Get the original response message
 
-    def check(m):
-        return m.author == interaction.user and m.channel == interaction.channel
+        def check(m):
+            return m.author == interaction.user and m.channel == interaction.channel
 
-    ended = False
-    while not ended:
-        guess = await bot.wait_for('message', check=check)
-        if guess.content.lower() == "withdraw":
-            ended = True
-        else:
-            try:
-                guess_index = int(guess.content) - 1  # Adjust for 0-based indexing
-                row = guess_index // grid_size
-                col = guess_index % grid_size
+        ended = False
+        while not ended:
+            guess = await bot.wait_for('message', check=check, timeout=60)
+            if guess.content.lower() == "withdraw":
+                ended = True
+            else:
+                try:
+                    guess_index = int(guess.content) - 1  # Adjust for 0-based indexing
+                    row = guess_index // grid_size
+                    col = guess_index % grid_size
 
-                if guess_index in bomb_positions:
-                    # Update the grid to show the barrier emoji where the bomb was
-                    for bomb_index in bomb_positions:
-                        bomb_row = bomb_index // grid_size
-                        bomb_col = bomb_index % grid_size
-                        grid[bomb_row][bomb_col] = str(barrier)  # Replace bomb with barrier
+                    if guess_index in bomb_positions:
+                        # Update the grid to show the barrier emoji where the bomb was
+                        for bomb_index in bomb_positions:
+                            bomb_row = bomb_index // grid_size
+                            bomb_col = bomb_index % grid_size
+                            grid[bomb_row][bomb_col] = str(barrier)  # Replace bomb with barrier
 
-                    # Replace all question marks with diamonds
-                    for r in range(grid_size):
-                        for c in range(grid_size):
-                            if grid[r][c] == ":grey_question:":
-                                grid[r][c] = str(diamond_emoji)  # Replace question mark with diamond
+                        # Replace all question marks with diamonds
+                        for r in range(grid_size):
+                            for c in range(grid_size):
+                                if grid[r][c] == ":grey_question:":
+                                    grid[r][c] = str(diamond_emoji)  # Replace question mark with diamond
 
-                    # Edit the original message with the updated grid state
-                    embed.description = f"{format_grid()}\n:coin: Bet Amount: **{round(bet, 1)}**    {barrier} Bombs Amount: **{bombs_count}**\n{diamond_emoji} Safe Amount: **{possible - bombs_count}**    :money_bag: Multiplier: **{round(current_multiplier, 2)}x**"
-                    await initial_message.edit(embed=embed)  # Edit the original message
-                    await interaction.channel.send("You lose!")  # Send loss message
-                    current_multiplier = 0
-                    ended = True
-                elif 0 <= guess_index < possible and grid[row][col] == ":grey_question:":
-                    grid[row][col] = str(diamond_emoji)  # Replace question mark with diamond
-                    current_multiplier += multiplier[mode]
+                        # Edit the original message with the updated grid state
+                        embed.description = f"{format_grid()}\n\n:coin: Bet Amount: **{round(bet, 1)}**    {barrier} Bombs Amount: **{bombs_count}**\n{diamond_emoji} Safe Amount: **{possible - bombs_count}**    :money_bag: Multiplier: **{round(current_multiplier, 2)}x**"
+                        await initial_message.edit(embed=embed)  # Edit the original message
+                        await interaction.channel.send("You lose!")  # Send loss message
+                        current_multiplier = 0
+                        ended = True
+                    elif 0 <= guess_index < possible and grid[row][col] == ":grey_question:":
+                        grid[row][col] = str(diamond_emoji)  # Replace question mark with diamond
+                        current_multiplier += multiplier[mode]
 
-                    # Edit the original message with the updated grid state
-                    embed.description = f"{format_grid()}\n:coin: Bet Amount: **{round(bet, 1)}**    {barrier} Bombs Amount: **{bombs_count}**\n{diamond_emoji} Safe Amount: **{possible - bombs_count}**    :money_bag: Multiplier: **{round(current_multiplier, 2)}x**"
-                    await initial_message.edit(embed=embed)  # Edit the original message
-                else:
-                    await interaction.channel.send("Invalid input! Please enter a valid number or 'withdraw'.")
-            except ValueError:
-                await interaction.channel.send("Please enter a number or 'withdraw'.")
+                        # Edit the original message with the updated grid state
+                        embed.description = f"{format_grid()}\n\n:coin: Bet Amount: **{round(bet, 1)}**    {barrier} Bombs Amount: **{bombs_count}**\n{diamond_emoji} Safe Amount: **{possible - bombs_count}**    :money_bag: Multiplier: **{round(current_multiplier, 2)}x (+{round(current_multiplier -1), 2}x)**"
+                        await initial_message.edit(embed=embed)  # Edit the original message
+                    else:
+                        await interaction.channel.send("Invalid input! Please enter a valid number or 'withdraw'.")
+                except ValueError:
+                    await interaction.channel.send("Please enter a number or 'withdraw'.")
 
-    money = round(bet * current_multiplier, 2)
-    await interaction.channel.send(f"You won {money}$")
-
-
-
-
-    
-
-
-
-
+        money = round(bet * current_multiplier, 2)
+        update_balance(user_id=interaction.user.id, amount=money)
+        await interaction.channel.send(f"You won {money}$")
+    else:
+        await interaction.response.send_message("You're too poor!")
 
 @bot.tree.command(name="gr")
 async def give_role(interaction: discord.Interaction, name: str):
