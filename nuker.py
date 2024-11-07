@@ -13,10 +13,6 @@ from PIL import Image
 import io
 from datetime import datetime
 
-os.system('pip install pymongo')
-
-from pymongo import MongoClient
-
 load_dotenv()  # Load environment variables from.env file
 
 bubble_image_path = os.path.join(os.path.dirname(__file__), "image.gif")
@@ -37,9 +33,7 @@ auto_remove = False
 
 frequent_uses = {}
 
-client = MongoClient(connection_string)
-db = client['currency_database']
-users_collection = db["users"]
+
 
 
 mass_sending = False
@@ -61,25 +55,6 @@ bangla_list = ["https://tenor.com/view/bangla-bangladeshi-gifgari-shomudro-bilas
 
 
 
-def add_user(user_id):
-    user = users_collection.find_one({"_id": user_id})
-    if not user:
-        # If the user is not found, insert a new document with an initial balance of 0
-        users_collection.insert_one({"_id": user_id, "balance": 1000})
-        print(f"User {user_id} added with an initial balance of 1000.")
-    else:
-        print(f"User {user_id} already exists in the database.")
-
-def update_balance(user_id, amount: int):
-    users_collection.update_one({"_id": user_id}, {"$inc": {"balance": amount}})
-    print(f"User {user_id} balance updated by {amount}.")
-
-def get_balance(user_id):
-    user = users_collection.find_one({"_id": user_id})
-    if user:
-        return user["balance"]
-    else:
-        return "User not found."
 
 
 
@@ -191,28 +166,7 @@ async def check_admins(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
 
-@bot.tree.command(name="add_balance")
-async def test(interaction: discord.Interaction, user: discord.User, amount: int):
-    if interaction.user.id == owner_id:
-        add_user(user_id=user.id)
-        update_balance(user_id=user.id, amount=amount)
-        if amount < 0:
-            await interaction.response.send_message(f"Removed {amount * -1}$ from {user.mention} balance", ephemeral=True)
-        else:
-            await interaction.response.send_message(f"Added {amount}$ to {user.mention} balance", ephemeral=True)
-    else:
-        interaction.response.send_message("Nty")
 
-
-@bot.tree.command(name="get_balance")
-async def balance_get(interaction: discord.Interaction, user: discord.User):
-    add_user(user_id=user.id)
-    await interaction.response.send_message(f"Balance for {user.mention}: {get_balance(user_id=user.id)}$", ephemeral=True)
-
-@bot.tree.command(name="balance")
-async def balance(interaction: discord.Interaction):
-    add_user(user_id=interaction.user.id)
-    await interaction.response.send_message(f"You balance is: {get_balance(user_id=interaction.user.id)}$")
 
 
 @bot.event
@@ -523,9 +477,7 @@ async def user_info(interaction: discord.Interaction, user: discord.User):
     ]
 )
 async def mines(interaction: discord.Interaction, mode: str, bet: int):
-    add_user(user_id=interaction.user.id)
-    if get_balance(user_id=interaction.user.id) >= bet:
-        update_balance(user_id=interaction.user.id, amount=bet * -1)
+
         coal_emoji = bot.get_emoji(1302933242659344485)
         diamond_emoji = bot.get_emoji(1302932787938070528)
         barrier = bot.get_emoji(1302932467463753799)
@@ -620,10 +572,7 @@ async def mines(interaction: discord.Interaction, mode: str, bet: int):
                     await interaction.channel.send("Please enter a number or 'withdraw'.")
 
         money = round(bet * current_multiplier, 2)
-        update_balance(user_id=interaction.user.id, amount=money)
         await interaction.channel.send(f"You won {money}$")
-    else:
-        await interaction.response.send_message("You're too poor!")
 
 @bot.tree.command(name="gr")
 async def give_role(interaction: discord.Interaction, name: str):
