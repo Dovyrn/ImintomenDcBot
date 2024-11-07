@@ -12,6 +12,9 @@ from words import words
 from PIL import Image
 import io
 from datetime import datetime
+
+os.system('pip install pymongo')
+
 from pymongo import MongoClient
 
 load_dotenv()  # Load environment variables from.env file
