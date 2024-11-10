@@ -8,10 +8,14 @@ from dotenv import load_dotenv
 import random
 import aiohttp
 from bs4 import BeautifulSoup
+import requests
 from words import words
 from PIL import Image
 import io
 from datetime import datetime
+
+os.system('pip install pytz')
+import pytz
 
 load_dotenv()  # Load environment variables from.env file
 
@@ -23,6 +27,7 @@ connection_string = os.getenv("MONGO")
 token = os.getenv('DISCORD_BOT_TOKEN')
 owner_id = 946386383809949756 #dovyrn
 imintomen_id = 1142107446458978344
+weather_api_key = os.getenv('WEATHER_API_KEY')
 
 # Define the necessary intents
 intents = discord.Intents.default()
@@ -98,6 +103,8 @@ async def fetch_motivational_quotes():
                     return "Couldn't find any motivational quotes."
             else:
                 return "Failed to retrieve motivational quotes."
+            
+
 class RemoveAdminView(discord.ui.View):
     def __init__(self, admins):
         super().__init__()
@@ -145,6 +152,55 @@ async def on_ready():
     except Exception as e:
         print(e)
 
+@bot.tree.command(name="cat", description="Meow Meow")
+async def cat(interaction: discord.Interaction):
+    """Sends a random cat picture with a deferred response."""
+
+    # Defer the interaction response to let the user know we're working on it
+    await interaction.response.defer()
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get("https://api.thecatapi.com/v1/images/search") as response:
+            if response.status == 200:
+                data = await response.json()
+                cat_url = data[0]["url"]
+                
+                embed = discord.Embed(title=None)
+                embed.set_image(url=cat_url)
+                
+                # Send the follow-up response with the cat picture
+                await interaction.followup.send(embed=embed)
+            else:
+                await interaction.followup.send("Could not fetch a cat picture at the moment. Try again later!")
+
+
+@bot.tree.command(name="weather", description="Get the current temperature and the condition")
+async def weather(interaction: discord.Interaction, city: str):
+    def get_weather(api_key, location):
+    # Endpoint for current weather
+        url = f"http://api.weatherapi.com/v1/current.json?key={api_key}&q={location}&aqi=no"
+
+        # Make the API call
+        response = requests.get(url)
+        
+        # Check if the response was successful
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Extract and display weather information
+            location_name = data["location"]["name"]
+            region = data["location"]["region"]
+            country = data["location"]["country"]
+            temp_c = data["current"]["temp_c"]
+            condition = data["current"]["condition"]["text"]
+            
+            return(f"Weather in {location_name}, {region}, {country}:\nTemperature: {temp_c}°C\nCondition: {condition}")
+
+        else:
+            return(f"Error: Unable to get weather data. Status code {response.status_code}")
+    await interaction.response.send_message(get_weather(api_key=weather_api_key, location=city))
+
+
 @bot.tree.command(name="check_admin", description="Check which users have admin permissions")
 async def check_admins(interaction: discord.Interaction):
     if interaction.user.id == owner_id:  # Ensure only the owner can run this
@@ -171,40 +227,55 @@ async def check_admins(interaction: discord.Interaction):
 
 @bot.event
 async def on_member_update(before, after):
-    global owner_id
-    # Ensure you're using the correct guild ID and owner ID
-    guild_id = imintomen_id  # Replace with your variable for the target server
-    owner_id = owner_id  # Use your variable for the bot owner's ID
+    if before.roles != after.roles:
+        added_roles = [role for role in after.roles if role not in before.roles]
+        removed_roles = [role for role in before.roles if role not in after.roles]
+        
+        # Determine the title based on the action (added or removed)
+        if added_roles:
+            title = "User Roles Added"
+            roles = ", ".join([role.mention for role in added_roles])
+            color = discord.Color.green()
+        elif removed_roles:
+            title = "User Roles Removed"
+            roles = ", ".join([role.mention for role in removed_roles])
+            color = discord.Color.red()
+        
+        # Attempt to find the member who made the change by checking the audit logs
+        action_member = None
+        async for entry in after.guild.audit_logs(action=discord.AuditLogAction.member_role_update, limit=1):
+            if entry.target.id == after.id:
+                action_member = entry.user
+                break
+        
+        # Create the embed
+        embed = discord.Embed(
+            title=title,
+            color=color,
+            description=(f"**User:** {after.mention} ({after})\n"
+                         f"**{'Added' if added_roles else 'Removed'}:** {roles}")
+        )
+        
+        # Add the thumbnail
+        embed.set_thumbnail(url=after.display_avatar.url)
+        
+        # Get the local time in GMT+8
+        gmt_plus_8_tz = pytz.timezone("Asia/Singapore")  # GMT+8 Time Zone
+        gmt_plus_8_time = datetime.now(gmt_plus_8_tz).strftime('%I:%M %p')
 
-    # IDs of the users to monitor
-    user_ids = [755472029049946303, 755475988149960866]  # Replace with your user IDs
-
-    if before.guild.id != guild_id:
-        return  # Ignore updates in other servers
-
-    # Check if the updated user is one of the target users
-    if after.id in user_ids:
-        # Check admin permissions before and after
-        before_admin = any(role.permissions.administrator for role in before.roles)
-        after_admin = any(role.permissions.administrator for role in after.roles)
-
-        # Fetch the bot owner to send a message
-        try:
-            owner = await bot.fetch_user(owner_id)
-        except discord.NotFound:
-            return
-
-        # If the user gained an admin role
-        if not before_admin and after_admin:
-            await owner.send(f"{after.mention} has been granted admin")
-            admin_role = next((role for role in after.roles if role.permissions.administrator), None)
-            if admin_role:
-                while auto_remove:
-                    await after.remove_roles(admin_role)
-
-        # If the user lost an admin role
-        elif before_admin and not after_admin:
-            await owner.send(f"{after.mention} no longer has admin.")
+        # Format the footer with username and time, and show who made the change
+        action_text = f"by {action_member.display_name}" if action_member else "by Unknown"
+        
+        # Set the footer with the avatar of the member who made the change
+        embed.set_footer(
+            text=f"@{after.display_name} • Today at {gmt_plus_8_time} {action_text}",
+            icon_url=action_member.display_avatar.url if action_member else None  # Use the avatar of the action member
+        )
+        
+        # Send the embed to a specific channel (replace with your channel ID)
+        channel = after.guild.get_channel(1304011208948453417)
+        if channel:
+            await channel.send(embed=embed)
 
 @bot.tree.command()
 @app_commands.describe(state="True/False")
@@ -599,7 +670,84 @@ async def give_role(interaction: discord.Interaction, name: str):
     else:
         await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
 
+
+@bot.event
+async def on_message_delete(message):
+    embed = discord.Embed(
+        title="Message deleted",
+        color = discord.Color.red,
+        description=(
+            f'> **Channel**: {message.channel.jump_url}'
+            f'> **Message**: {message.content}'
+            f'> **Author**: {message.author.mention}'
+        )
+    )
+    await bot.get_channel(1304010820547641354).send(embed=embed)
+
+@bot.event
+async def on_message_edit(before, after):
+    embed = discord.Embed(
+        title="Message edited",
+        color = discord.Color.orange(),
+        description=(
+            f'> **Channel**: {before.channel.jump_url}'
+            f'> **Author**: {before.author.mention}'
+
+            f"> **Before**: {before.content}"
+            f"> **After**: {after.content}"   
+
+        )
+    )
+    await bot.get_channel(1304010683788300298).send(embed=embed)
+
+
+
+
+@bot.event
+async def on_member_update(before, after):
+    if before.roles != after.roles:
+        added_roles = [role for role in after.roles if role not in before.roles]
+        removed_roles = [role for role in before.roles if role not in after.roles]
         
+        # Determine the title based on the action (added or removed)
+        if added_roles:
+            title = "User Roles Added"
+            roles = ", ".join([role.mention for role in added_roles])
+            color = discord.Color.green()
+        elif removed_roles:
+            title = "User Roles Removed"
+            roles = ", ".join([role.mention for role in removed_roles])
+            color = discord.Color.brand_red()
+        
+        # Attempt to find the member who made the change by checking the audit logs
+        action_member = None
+        async for entry in after.guild.audit_logs(action=discord.AuditLogAction.member_role_update, limit=1):
+            if entry.target.id == after.id:
+                action_member = entry.user
+                break
+        
+        # Create the embed
+        embed = discord.Embed(
+            title=title,
+            color=color,
+            description=(f"> **User:** {after.mention} ({after})\n"
+                         f"> **{'Added' if added_roles else 'Removed'}:** {roles}")
+        )
+        
+        # Add the thumbnail
+        embed.set_thumbnail(url=after.display_avatar.url)
+        
+        # Format the footer with username and time, and show who made the change
+        action_text = f"{action_member.name}" if action_member else "by Unknown"
+        time = discord.utils.utcnow().strftime('%I:%M %p')
+        embed.set_footer(text=f"@{action_text}  •  Today at {time}", icon_url=action_member.display_avatar.url if action_member else None)
+        
+        # Send the embed to a specific channel (replace with your channel ID)
+        channel = after.guild.get_channel(1304011208948453417)
+        if channel:
+            await channel.send(embed=embed)
+
+
 
 @bot.command()
 async def create_invite(ctx):
@@ -651,7 +799,7 @@ async def state(ctx, state_type):
     else:
         await ctx.send("A mortal shall not interfere with the systems doing.")
 
-import asyncio
+
 
 @bot.command()
 async def clear_mass(ctx, content: str):
