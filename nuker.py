@@ -28,6 +28,8 @@ token = os.getenv('DISCORD_BOT_TOKEN')
 owner_id = 946386383809949756 #dovyrn
 imintomen_id = 1142107446458978344
 weather_api_key = os.getenv('WEATHER_API_KEY')
+search_engine_id = os.getenv('SEARCH_ENGINE_ID')
+gcs_api_key = os.getenv('GCS_API_KEY')
 
 # Define the necessary intents
 intents = discord.Intents.default()
@@ -45,7 +47,6 @@ mass_sending = False
 
 bot = commands.Bot(command_prefix=':/', case_insensitive=True, help_command=None, intents=intents)
 
-WEBHOOK_URL = "https://discord.com/api/webhooks/1294584017605365781/RTgHVItbFfHAnwB_uyjGVzTuzaiVHuha-ZoP7Hsl0Xr6r_OyTIIXfGkKH2unDFbgVhnU"
 
 bangla_list = ["https://tenor.com/view/bangla-bangladeshi-gifgari-shomudro-bilash-private-limited-natok-gif-25397183",
                "https://tenor.com/view/marjuk-rasel-gifgari-bangla-bangla-gif-bangladesh-gif-18042831",
@@ -103,7 +104,44 @@ async def fetch_motivational_quotes():
                     return "Couldn't find any motivational quotes."
             else:
                 return "Failed to retrieve motivational quotes."
+
+class LoadMore(discord.ui.View):
+    def __init__(self, query, search_engine_id, gcs_api_key):
+        super().__init__()
+        self.query = query
+        self.search_engine_id = search_engine_id
+        self.gcs_api_key = gcs_api_key
+        self.images = []  # List to store all image URLs
+        self.image_index = 0  # Start with the first image
+
+    async def fetch_images(self):
+        # Construct the Google Custom Search API URL
+        url = f"https://www.googleapis.com/customsearch/v1?q={self.query}&cx={self.search_engine_id}&key={self.gcs_api_key}&searchType=image"
+        
+        # Make the GET request
+        response = requests.get(url)
+        data = response.json()
+
+        # Store the image URLs if there are any results
+        if 'items' in data:
+            self.images = [item['link'] for item in data['items']]
+            random.shuffle(self.images)  # Shuffle the images to ensure different order each time
+            self.image_index = 0  # Reset the index for a new set of images
+
+    @discord.ui.button(label="Load More", style=discord.ButtonStyle.primary)
+    async def load_more(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.image_index < len(self.images):
+            # Get the next image in the shuffled list
+            image_url = self.images[self.image_index]
+            self.image_index += 1  # Increment to the next image for the following click
             
+            # Send the image to the Discord channel
+            await interaction.response.send_message(
+                content=f"Search results for: ```{self.query}```\n{image_url}",
+                view=self  # Keep the Load More button in the view
+            )
+        else:
+            await interaction.response.send_message("No more results found.")
 
 class RemoveAdminView(discord.ui.View):
     def __init__(self, admins):
@@ -139,8 +177,26 @@ class RemoveAdminView(discord.ui.View):
         else:
             await interaction.response.send_message("Could not find the selected user.", ephemeral=True)
 
+@bot.tree.command(name="search", description="Search Google Images and display results")
+@app_commands.describe(query="The search term")
+async def search(interaction: discord.Interaction, query: str):
 
-conversation_history = []
+    # Create LoadMore view and initialize with query details
+    view = LoadMore(query, search_engine_id, gcs_api_key)
+    await view.fetch_images()  # Fetch and shuffle images
+    
+    # Send the initial image if available
+    if view.images:
+        initial_image_url = view.images[0]
+        view.image_index += 1  # Move to the next image for the following click
+        
+        await interaction.response.send_message(
+            content=f"Search results for: ```{query}```\n{initial_image_url}",
+            view=view
+        )
+    else:
+        await interaction.response.send_message("No results found.")
+
 
 @bot.event
 async def on_ready():   
@@ -670,83 +726,6 @@ async def give_role(interaction: discord.Interaction, name: str):
         await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
 
 
-@bot.event
-async def on_message_delete(message):
-    embed = discord.Embed(
-        title="Message deleted",
-        color = discord.Color.red,
-        description=(
-            f'> **Channel**: {message.channel.jump_url}'
-            f'> **Message**: {message.content}'
-            f'> **Author**: {message.author.mention}'
-        )
-    )
-    await bot.get_channel(1304010820547641354).send(embed=embed)
-
-@bot.event
-async def on_message_edit(before, after):
-    embed = discord.Embed(
-        title="Message edited",
-        color = discord.Color.orange(),
-        description=(
-            f'> **Channel**: {before.channel.jump_url}'
-            f'> **Author**: {before.author.mention}'
-
-            f"> **Before**: {before.content}"
-            f"> **After**: {after.content}"   
-
-        )
-    )
-    await bot.get_channel(1304010683788300298).send(embed=embed)
-
-
-
-
-@bot.event
-async def on_member_update(before, after):
-    if before.roles != after.roles:
-        added_roles = [role for role in after.roles if role not in before.roles]
-        removed_roles = [role for role in before.roles if role not in after.roles]
-        
-        # Determine the title based on the action (added or removed)
-        if added_roles:
-            title = "User Roles Added"
-            roles = ", ".join([role.mention for role in added_roles])
-            color = discord.Color.green()
-        elif removed_roles:
-            title = "User Roles Removed"
-            roles = ", ".join([role.mention for role in removed_roles])
-            color = discord.Color.brand_red()
-        
-        # Attempt to find the member who made the change by checking the audit logs
-        action_member = None
-        async for entry in after.guild.audit_logs(action=discord.AuditLogAction.member_role_update, limit=1):
-            if entry.target.id == after.id:
-                action_member = entry.user
-                break
-        
-        # Create the embed
-        embed = discord.Embed(
-            title=title,
-            color=color,
-            description=(f"> **User:** {after.mention} ({after})\n"
-                         f"> **{'Added' if added_roles else 'Removed'}:** {roles}")
-        )
-        
-        # Add the thumbnail
-        embed.set_thumbnail(url=after.display_avatar.url)
-        
-        # Format the footer with username and time, and show who made the change
-        action_text = f"{action_member.name}" if action_member else "by Unknown"
-        time = discord.utils.utcnow().strftime('%I:%M %p')
-        embed.set_footer(text=f"@{action_text}  •  Today at {time}", icon_url=action_member.display_avatar.url if action_member else None)
-        
-
-        channel = after.guild.get_channel(1304011208948453417)
-        if channel:
-            await channel.send(embed=embed)
-
-
 
 @bot.command()
 async def create_invite(ctx):
@@ -766,7 +745,6 @@ async def unban(ctx):
         if target_guild is None:
             await ctx.send(f"Bot is not in the server with ID {imintomen_id}.")
             return
-
         try:
             bans = target_guild.bans()
             async for ban_entry in bans:
