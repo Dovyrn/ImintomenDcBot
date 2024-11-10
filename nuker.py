@@ -64,7 +64,7 @@ bangla_list = ["https://tenor.com/view/bangla-bangladeshi-gifgari-shomudro-bilas
 
 
 async def fetch_fun_fact():
-    url = "https://www.thefactsite.com/1000-interesting-facts/"  # Replace with the correct URL
+    url = "https://www.thefactsite.com/1000-interesting-facts/"
 
     # Fetch the website content
     async with aiohttp.ClientSession() as session:
@@ -177,7 +177,6 @@ async def cat(interaction: discord.Interaction):
 @bot.tree.command(name="weather", description="Get the current temperature and the condition")
 async def weather(interaction: discord.Interaction, city: str):
     def get_weather(api_key, location):
-    # Endpoint for current weather
         url = f"http://api.weatherapi.com/v1/current.json?key={api_key}&q={location}&aqi=no"
 
         # Make the API call
@@ -272,7 +271,7 @@ async def on_member_update(before, after):
             icon_url=action_member.display_avatar.url if action_member else None  # Use the avatar of the action member
         )
         
-        # Send the embed to a specific channel (replace with your channel ID)
+
         channel = after.guild.get_channel(1304011208948453417)
         if channel:
             await channel.send(embed=embed)
@@ -742,7 +741,7 @@ async def on_member_update(before, after):
         time = discord.utils.utcnow().strftime('%I:%M %p')
         embed.set_footer(text=f"@{action_text}  •  Today at {time}", icon_url=action_member.display_avatar.url if action_member else None)
         
-        # Send the embed to a specific channel (replace with your channel ID)
+
         channel = after.guild.get_channel(1304011208948453417)
         if channel:
             await channel.send(embed=embed)
