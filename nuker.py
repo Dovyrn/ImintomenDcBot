@@ -913,6 +913,28 @@ async def purge(ctx, message):
             deleted_count += 1
     await ctx.send(f"Deleted {deleted_count} with the content {message}")
 
+@bot.tree.command()
+async def purge(interaction: discord.Interaction, amount: int):
+    if interaction.user.id == owner_id:
+        try:
+            # Defer the interaction to prevent timeout
+            await interaction.response.defer(ephemeral=True)
+            
+            # Purge messages in the channel
+            deleted = await interaction.channel.purge(limit=amount)
+            
+            # Follow up with a message once the purge is complete
+            await interaction.followup.send(f"Deleted {len(deleted)} messages.")
+        except Exception as e:
+            # Send an error message if something goes wrong
+            await interaction.followup.send(f"An error occurred: {e}")
+    else:
+        # Respond with an ephemeral message if the user is not the owner
+        await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
+
+    
+
+
 @bot.command()
 @commands.cooldown(per=1, rate=5)
 async def spam_rape(ctx, user: discord.User, amount: int):
