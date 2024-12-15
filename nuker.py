@@ -915,7 +915,7 @@ async def purge(ctx, message):
 
 @bot.tree.command()
 async def purge(interaction: discord.Interaction, amount: int):
-    if interaction.user.id == owner_id:
+    if interaction.user.id == (owner_id or indian_id):
         try:
             # Defer the interaction to prevent timeout
             await interaction.response.defer(ephemeral=True)
@@ -930,7 +930,7 @@ async def purge(interaction: discord.Interaction, amount: int):
             await interaction.followup.send(f"An error occurred: {e}")
     else:
         # Respond with an ephemeral message if the user is not the owner
-        await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
+        await interaction.response.send_message("Go fuck yourself", ephemeral=True)
 
     
 
